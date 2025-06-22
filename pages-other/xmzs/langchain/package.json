@@ -1,0 +1,11 @@
+{
+  "type": "module",
+  "dependencies": {
+    "@langchain/community": "^0.3.47",
+    "@langchain/core": "^0.3.61",
+    "@langchain/openai": "^0.5.15",
+    "cors": "^2.8.5",
+    "express": "^5.1.0",
+    "langchain": "^0.3.29"
+  }
+}
