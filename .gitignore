@@ -26,3 +26,5 @@ node_modules/
 package-lock.json
 
 .keep
+
+*.exe
