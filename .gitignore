@@ -28,3 +28,7 @@ package-lock.json
 .keep
 
 *.exe
+
+build
+
+.cache
