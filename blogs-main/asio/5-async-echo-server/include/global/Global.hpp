@@ -19,6 +19,7 @@ class GlobalVariable final : public Singleton<GlobalVariable> {};
 
 } // namespace global
 
+#define MAX_LENGTH 1024
 #define globalVariable global::GlobalVariable::getInstance()
 
 #endif // GLOBAL_HPP
