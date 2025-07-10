@@ -173,6 +173,7 @@ void Session::handle_read(const boost::system::error_code &err, std::size_t byte
 void Session::handle_write(const boost::system::error_code& err) {
   if (!err) {
     std::scoped_lock<std::mutex> lock{_send_mtx};
+    logger.info("send data is: {}\n", _send_queue.front()->_data + HEAD_LENGTH);
     _send_queue.pop();
     if (!_send_queue.empty()) {
       auto& node =_send_queue.front();
