@@ -25,6 +25,10 @@ void Session::Start() {
   );
 }
 
+void Session::Close() {
+  _sock.close();
+}
+
 void Session::Send(char *data, size_t leng) {
   bool pending = false;
   std::shared_ptr<MsgNode> node = std::make_shared<MsgNode>(data, leng);
@@ -175,6 +179,8 @@ void Session::handle_read(const boost::system::error_code &err, std::size_t byte
     }
   } else {
     logger.error("read error, err msg is: {}\n", err.message());
+    _server->RemoveSession(_uuid);
+    Close();
   }
 }
 
@@ -193,6 +199,8 @@ void Session::handle_write(const boost::system::error_code& err) {
     }
   } else {
     logger.error("write error, err msg is: {}\n", err.message());
+    _server->RemoveSession(_uuid);
+    Close();
   }
 }
 

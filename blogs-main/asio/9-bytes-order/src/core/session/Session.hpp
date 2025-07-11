@@ -30,6 +30,7 @@ public:
   }
 
   void Start();
+  void Close();
   void Send(char *data, size_t leng);
 
   boost::asio::ip::tcp::socket& getSocket() { return _sock; }
