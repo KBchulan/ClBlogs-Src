@@ -6,9 +6,12 @@
 #include <boost/asio/write.hpp>
 #include <boost/asio/detail/socket_holder.hpp>
 
+#include <core/data/msg.pb.h>
 #include <core/msg-node/MsgNode.hpp>
-#include <core/server/Server.hpp>
 #include <middleware/Logger.hpp>
+#include <core/server/Server.hpp>
+
+#include <iostream>
 #include <winsock2.h>
 
 namespace core {
@@ -117,10 +120,20 @@ void Session::handle_read(const boost::system::error_code &err, std::size_t byte
         copy_len += static_cast<size_t>(data_len);
         bytes_transferred -= static_cast<size_t>(data_len);
         _recv_msg_node->_data[_recv_msg_node->_max_len] = '\0';
-        logger.info("receive data is: {}\n", _recv_msg_node->_data);
+        std::cout << std::format("receive data is: {}\n", _recv_msg_node->_data);
 
         // 至此，分支1的接收逻辑走完了，调用Send测试一下
-        Send(_recv_msg_node->_data, static_cast<size_t>(_recv_msg_node->_max_len));
+        Data::MsgData recv_data;
+        recv_data.ParseFromString(std::string(_recv_msg_node->_data, (size_t)_recv_msg_node->_max_len));
+        std::cout << std::format("msg id is: {}, msg data is {}\n", recv_data.id(), recv_data.data());
+
+        Data::MsgData send_data;
+        send_data.set_id(recv_data.id());
+        std::string send_str = "server received. the data is:" +  recv_data.data();
+        send_data.set_data(send_str);
+        std::string return_str;
+        send_data.SerializeToString(&return_str);
+        Send(return_str.data(), return_str.length());
 
         // 处理剩余的数据
         _head_parse.store(false, std::memory_order_release);
@@ -159,9 +172,20 @@ void Session::handle_read(const boost::system::error_code &err, std::size_t byte
       bytes_transferred -= msg_remain;
       copy_len += msg_remain;
       _recv_msg_node->_data[_recv_msg_node->_max_len] = '\0';
-      logger.info("receive data is: {}\n", _recv_msg_node->_data);
+      std::cout << std::format("receive data is: {}\n", _recv_msg_node->_data);
+
       // 至此，分支2的接收逻辑走完了，调用Send测试一下
-      Send(_recv_msg_node->_data, static_cast<size_t>(_recv_msg_node->_max_len));
+      Data::MsgData recv_data;
+      recv_data.ParseFromString(std::string(_recv_msg_node->_data, (size_t)_recv_msg_node->_max_len));
+      std::cout << std::format("msg id is: {}, msg data is {}\n", recv_data.id(), recv_data.data());
+
+      Data::MsgData send_data;
+      send_data.set_id(recv_data.id());
+      std::string send_str = "server received. the data is:" +  recv_data.data();
+      send_data.set_data(send_str);
+      std::string return_str;
+      send_data.SerializeToString(&return_str);
+      Send(return_str.data(), return_str.length());
 
       // 处理剩余的数据
       _head_parse.store(false, std::memory_order_release);

@@ -106,7 +106,7 @@ void Session::handle_read(const boost::system::error_code &err, std::size_t byte
         copy_len += static_cast<size_t>(data_len);
         bytes_transferred -= static_cast<size_t>(data_len);
         _recv_msg_node->_data[_recv_msg_node->_max_len] = '\0';
-        logger.info("receive data is: {}\n", _recv_msg_node->_data);
+        std::cout << std::format("receive data is: {}\n", _recv_msg_node->_data);
         // 至此，分支1的接收逻辑走完了，调用Send测试一下
         Send(_recv_msg_node->_data, static_cast<size_t>(_recv_msg_node->_max_len));
 
@@ -147,7 +147,7 @@ void Session::handle_read(const boost::system::error_code &err, std::size_t byte
       bytes_transferred -= msg_remain;
       copy_len += msg_remain;
       _recv_msg_node->_data[_recv_msg_node->_max_len] = '\0';
-      logger.info("receive data is: {}\n", _recv_msg_node->_data);
+      std::cout << std::format("receive data is: {}\n", _recv_msg_node->_data);
       // 至此，分支2的接收逻辑走完了，调用Send测试一下
       Send(_recv_msg_node->_data, static_cast<size_t>(_recv_msg_node->_max_len));
 
