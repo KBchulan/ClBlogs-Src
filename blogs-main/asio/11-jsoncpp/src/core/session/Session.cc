@@ -9,7 +9,10 @@
 
 #include <core/msg-node/MsgNode.hpp>
 #include <core/server/Server.hpp>
+#include <json/json.h>
+#include <json/writer.h>
 #include <middleware/Logger.hpp>
+#include <sstream>
 #include <winsock2.h>
 
 namespace core {
@@ -121,7 +124,19 @@ void Session::handle_read(const boost::system::error_code &err, std::size_t byte
         std::cout << std::format("receive data is: {}\n", _recv_msg_node->_data);
 
         // 至此，分支1的接收逻辑走完了，调用Send测试一下
-        Send(_recv_msg_node->_data, static_cast<size_t>(_recv_msg_node->_max_len));
+        Json::CharReaderBuilder read_builder;
+        std::stringstream strste{_recv_msg_node->_data};
+        Json::Value recv_data;
+        std::string errors;
+        if (Json::parseFromStream(read_builder, strste, &recv_data, &errors)) {
+          std::cout << std::format("recv id is: {}, recv data is: {}", recv_data["id"].asString(), recv_data["data"].asString());
+        }
+
+        recv_data["data"] = "server has received msg, " + recv_data["data"].asString();
+        Json::StreamWriterBuilder write_builder;
+        std::string send_str = Json::writeString(write_builder, recv_data);
+
+        Send(send_str.data(), send_str.length());
 
         // 处理剩余的数据
         _head_parse.store(false, std::memory_order_release);
@@ -161,8 +176,21 @@ void Session::handle_read(const boost::system::error_code &err, std::size_t byte
       copy_len += msg_remain;
       _recv_msg_node->_data[_recv_msg_node->_max_len] = '\0';
       std::cout << std::format("receive data is: {}\n", _recv_msg_node->_data);
+
       // 至此，分支2的接收逻辑走完了，调用Send测试一下
-      Send(_recv_msg_node->_data, static_cast<size_t>(_recv_msg_node->_max_len));
+      Json::CharReaderBuilder read_builder;
+      std::stringstream strste{_recv_msg_node->_data};
+      Json::Value recv_data;
+      std::string errors;
+      if (Json::parseFromStream(read_builder, strste, &recv_data, &errors)) {
+        std::cout << std::format("recv id is: {}, recv data is: {}", recv_data["id"].asString(), recv_data["data"].asString());
+      }
+
+      recv_data["data"] = "server has received msg, " + recv_data["data"].asString();
+      Json::StreamWriterBuilder write_builder;
+      std::string send_str = Json::writeString(write_builder, recv_data);
+
+      Send(send_str.data(), send_str.length());
 
       // 处理剩余的数据
       _head_parse.store(false, std::memory_order_release);

@@ -21,6 +21,7 @@ set_target_properties(
 # 头文件
 target_include_directories(
   ${PROJECT_NAME} PRIVATE
+  $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/src>
   $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/include>
   $<INSTALL_INTERFACE:include>
 )
@@ -35,7 +36,7 @@ endif()
 target_link_libraries(
   ${PROJECT_NAME} PRIVATE
   ${FMT_LIBRARIES} # fmt库
-  ws2_32 # ws2_32
+  ${JSONCPP_LIBRARIES} # jsoncpp库
 )
 
 # 安装可执行文件

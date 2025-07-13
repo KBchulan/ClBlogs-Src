@@ -1,65 +1,53 @@
 #include <boost/asio.hpp>
 #include <boost/asio/ip/address.hpp>
 #include <iostream>
-#include <thread>
+#include <json/json.h>
+#include <json/reader.h>
+#include <json/value.h>
+#include <json/writer.h>
+#include <sstream>
+#include <string>
 
-using namespace std;
-using namespace boost::asio::ip;
-const int MAX_LENGTH = 1024 * 2;
-const int HEAD_LENGTH = 2;
+#define HEAD_LENGTH 2
+#define MAX_LENGTH 1024 * 2
 
 int main() {
   try {
     boost::asio::io_context ioc;
-    tcp::endpoint remote_ep(make_address("127.0.0.1"), 10088);
-    tcp::socket sock(ioc);
-    boost::system::error_code error = boost::asio::error::host_not_found;
+    boost::asio::ip::tcp::endpoint enp{boost::asio::ip::make_address_v4("127.0.0.1"), 10088};
+    boost::asio::ip::tcp::socket sock{ioc};
+    sock.connect(enp);
 
-    sock.connect(remote_ep, error);
-    if (error) {
-      cout << "connect failed, code is " << error.value() << " error msg is "
-           << error.message();
-      return 0;
-    }
+    Json::Value root;
+    root["id"] = 1001;
+    root["data"] = "hello, server";
+    Json::StreamWriterBuilder builder;
+    std::string raw_str = Json::writeString(builder, root);
 
-    thread send_thread([&sock] {
-      for (;;) {
-        this_thread::sleep_for(std::chrono::milliseconds(2));
-        const char *request = "hello world!";
-        auto request_length = static_cast<short>(strlen(request));
-        char send_data[MAX_LENGTH] = {0};
-        // 转为网络字节序
-        auto request_host_length = (short)boost::asio::detail::socket_ops::host_to_network_short(static_cast<u_short>(request_length));
-        memcpy(send_data, &request_host_length, 2);
-        memcpy(send_data + 2, request, static_cast<size_t>(request_length));
-        boost::asio::write(sock,boost::asio::buffer(send_data, static_cast<size_t>(request_length + HEAD_LENGTH)));
-      }
-    });
+    auto send_len = static_cast<short>(raw_str.length());
+    send_len = (short)boost::asio::detail::socket_ops::host_to_network_short(static_cast<u_short>(send_len));
+    std::array<char, MAX_LENGTH> send_date;
+    memcpy(send_date.data(), &send_len, HEAD_LENGTH);
+    memcpy(send_date.data() + HEAD_LENGTH, raw_str.c_str(), raw_str.size());
+    boost::asio::write(sock, boost::asio::buffer(send_date.data(), raw_str.length() + HEAD_LENGTH));
 
-    thread recv_thread([&sock] {
-      for (;;) {
-        this_thread::sleep_for(std::chrono::milliseconds(2));
-        cout << "begin to receive...\n";
-        char reply_head[HEAD_LENGTH];
-        boost::asio::read(sock, boost::asio::buffer(reply_head, HEAD_LENGTH));
-        short msglen = 0;
-        memcpy(&msglen, reply_head, HEAD_LENGTH);
-        // 转为本地字节序
-        msglen = (short)boost::asio::detail::socket_ops::network_to_host_short(static_cast<u_short>(msglen));
-        char msg[MAX_LENGTH] = {0};
-        boost::asio::read(sock, boost::asio::buffer(msg, static_cast<size_t>(msglen)));
+    std::cout << "ready to receive\n";
+    std::array<char, HEAD_LENGTH> head_rece;
+    boost::asio::read(sock, boost::asio::buffer(head_rece.data(), HEAD_LENGTH));
+    short len = 0;
+    memcpy(&len, head_rece.data(), HEAD_LENGTH);
+    len = (short)boost::asio::detail::socket_ops::network_to_host_short(static_cast<u_short>(len));
+    std::array<char, MAX_LENGTH> recv;
+    boost::asio::read(sock, boost::asio::buffer(recv.data(), static_cast<size_t>(len)));
 
-        std::cout << "Reply is: ";
-        std::cout.write(msg, msglen) << '\n';
-        std::cout << "Reply len is " << msglen;
-        std::cout << "\n";
-      }
-    });
+    Json::CharReaderBuilder read_builder;
+    std::stringstream sss{recv.data()};
+    Json::Value read;
+    std::string errors;
+    Json::parseFromStream(read_builder, sss, &read, &errors);
+    std::cout << "id is: " << read["id"].asString() << " data is: " << read["data"].asString() << '\n';
 
-    send_thread.join();
-    recv_thread.join();
-  } catch (std::exception &e) {
-    std::cerr << "Exception: " << e.what() << '\n';
+  } catch (const boost::system::error_code &err) {
+    std::cout << "error code is: {}" << err.value() << '\n';
   }
-  return 0;
 }

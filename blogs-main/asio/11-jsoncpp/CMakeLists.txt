@@ -100,6 +100,7 @@ set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
 # 第三方库
 find_package(PkgConfig REQUIRED)
 pkg_check_modules(FMT REQUIRED fmt)
+pkg_check_modules(JSONCPP REQUIRED jsoncpp)
 
 # 主入口
 add_subdirectory(src)
