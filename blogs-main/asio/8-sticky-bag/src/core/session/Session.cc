@@ -2,6 +2,7 @@
 
 #include <cstddef>
 #include <cstring>
+#include <iostream>
 
 #include <boost/asio/write.hpp>
 
