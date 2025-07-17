@@ -31,6 +31,8 @@ enum class LogLevel : std::uint8_t {
 };
 
 class Logger final : public global::Singleton<Logger> {
+  friend class global::Singleton<Logger>;
+
  public:
   // 标准打印
   template <typename... Args>
@@ -108,6 +110,9 @@ class Logger final : public global::Singleton<Logger> {
       default:                return "UNKNOWN";
     }
   }
+
+  Logger() = default;
+  ~Logger() = default;
 };
 
 }  // namespace middleware
