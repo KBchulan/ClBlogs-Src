@@ -11,25 +11,10 @@
 #ifndef GLOBAL_HPP
 #define GLOBAL_HPP
 
-#include <global/Singleton.hpp>
-
-#include <map>
-#include <any>
-#include <string>
-
-namespace global {
-
-class GlobalVariable final : public Singleton<GlobalVariable> {
-public:
-  std::map<std::string, std::any> globalValue;
-};
-
-} // namespace global
-
-#define HEAD_LENGTH 2
-#define MAX_LENGTH 1024 * 2
+#define MSG_TYPE_LENGTH 2
+#define MSG_LEN_LENGTH 2
+#define MSG_HEAD_TOTAL_LEN 4
+#define MSG_BODY_LENGTH 1024 * 2
 #define SEND_QUEUE_MAX_LEN 1000
-
-#define globalVariable global::GlobalVariable::getInstance()
 
 #endif // GLOBAL_HPP

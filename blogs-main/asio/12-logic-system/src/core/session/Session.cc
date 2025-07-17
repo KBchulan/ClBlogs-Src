@@ -1,28 +1,29 @@
 #include "Session.hpp"
 
 #include <cstddef>
+#include <sstream>
 #include <cstring>
 #include <iostream>
+#include <winsock2.h>
+
+#include <json/json.h>
+#include <json/writer.h>
 
 #include <boost/asio/write.hpp>
 #include <boost/asio/detail/socket_holder.hpp>
 
-#include <core/msg-node/MsgNode.hpp>
-#include <core/server/Server.hpp>
-#include <json/json.h>
-#include <json/writer.h>
 #include <middleware/Logger.hpp>
-#include <sstream>
-#include <winsock2.h>
+#include <core/server/Server.hpp>
+#include <core/msg-node/MsgNode.hpp>
 
 namespace core {
 
 void Session::Start() {
   _head_parse.store(false, std::memory_order_release);
-  _recv_head_node = std::make_shared<MsgNode>(HEAD_LENGTH);
+  _recv_head_node = std::make_shared<MsgNode>(MSG_HEAD_TOTAL_LEN);
 
-  _data.fill('\0');
-  _sock.async_read_some(boost::asio::buffer(_data.data(), MAX_LENGTH),
+  memset(_data.data(), 0, std::min(static_cast<size_t>(MSG_BODY_LENGTH), _data.size()));
+  _sock.async_read_some(boost::asio::buffer(_data.data(), MSG_BODY_LENGTH),
     [self = shared_from_this()](const boost::system::error_code &err, std::size_t bytes_transferred) -> void {
       self->handle_read(err, bytes_transferred);
     }
@@ -30,12 +31,18 @@ void Session::Start() {
 }
 
 void Session::Close() {
-  _sock.close();
+  if (_sock.is_open()) {
+    boost::system::error_code errc;
+    _sock.close(errc);
+    if (errc) {
+      logger.warning("Socket close error: {}\n", errc.message());
+    }
+  }
 }
 
-void Session::Send(char *data, size_t leng) {
+void Session::Send(short msg_id, short msg_len, const char *data) {
   bool pending = false;
-  std::shared_ptr<MsgNode> node = std::make_shared<MsgNode>(data, leng);
+  std::shared_ptr<MsgNode> node = std::make_shared<SendNode>(msg_id, msg_len, data);
 
   {
     std::scoped_lock<std::mutex> lock{_send_mtx};
@@ -52,7 +59,7 @@ void Session::Send(char *data, size_t leng) {
   }
 
   auto& msg_node = _send_queue.front();
-  boost::asio::async_write(_sock, boost::asio::buffer(msg_node->_data, static_cast<size_t>(msg_node->_max_len)),
+  boost::asio::async_write(_sock, boost::asio::buffer(msg_node->_data, static_cast<size_t>(msg_node->_msg_len)),
     [self = shared_from_this()](const boost::system::error_code& errc, size_t) -> void {
       self->handle_write(errc);
     }
@@ -66,12 +73,12 @@ void Session::handle_read(const boost::system::error_code &err, std::size_t byte
       // 处理头部
       if (!_head_parse) {
         // 收到的数据还没有头部长度
-        if (bytes_transferred + static_cast<size_t>(_recv_head_node->_cur_len) < HEAD_LENGTH) {
+        if (bytes_transferred + static_cast<size_t>(_recv_head_node->_cur_len) < MSG_HEAD_TOTAL_LEN) {
           memcpy(_recv_head_node->_data + _recv_head_node->_cur_len, _data.data() + copy_len, bytes_transferred);
           _recv_head_node->_cur_len += bytes_transferred;
-          memset(_data.data(), 0, MAX_LENGTH);
 
-          _sock.async_read_some(boost::asio::buffer(_data.data(), MAX_LENGTH),
+          memset(_data.data(), 0, std::min(static_cast<size_t>(MSG_BODY_LENGTH), _data.size()));
+          _sock.async_read_some(boost::asio::buffer(_data.data(), MSG_BODY_LENGTH),
           [self = shared_from_this()](const boost::system::error_code &errc, size_t bytes) -> void {
             self->handle_read(errc, bytes);
           });
@@ -79,35 +86,45 @@ void Session::handle_read(const boost::system::error_code &err, std::size_t byte
         }
 
         // 再次处理剩余的头部信息
-        auto head_remain = static_cast<size_t>(HEAD_LENGTH - _recv_head_node->_cur_len);
+        auto head_remain = static_cast<size_t>(MSG_HEAD_TOTAL_LEN - _recv_head_node->_cur_len);
         memcpy(_recv_head_node->_data + _recv_head_node->_cur_len, _data.data() + copy_len, head_remain);
-        _recv_head_node->_data[_recv_head_node->_max_len] = '\0';
 
         // 更新处理完头部剩余的内容
         copy_len += head_remain;
         bytes_transferred -= head_remain;
 
-        // 处理数据部分，先获取数据部分的长度
+        // 处理数据部分，先获取数据部分的id和长度
+        short data_id = 0;
         short data_len = 0;
-        memcpy(&data_len, _recv_head_node->_data, HEAD_LENGTH);
+        memcpy(&data_id, _recv_head_node->_data, MSG_TYPE_LENGTH);
+        memcpy(&data_len, _recv_head_node->_data + MSG_TYPE_LENGTH, MSG_LEN_LENGTH);
+        data_id = (short)boost::asio::detail::socket_ops::network_to_host_short(static_cast<u_short>(data_id));
         data_len = (short)boost::asio::detail::socket_ops::network_to_host_short(static_cast<u_short>(data_len));
-        logger.info("receive data len is: {}\n", data_len);
+        logger.info("receive data id is: {}, data len is: {}\n", data_id, data_len);
 
-        if (data_len > MAX_LENGTH) {
-          logger.error("too long msg received, len is: {}\n", data_len);
+        if (data_id < 0 || data_id > 2000) {
+          logger.error("Invalid msg id, id is: {}\n", data_id);
+          _server->RemoveSession(_uuid);
+          Close();
+          return;
+        }
+        if (data_len > MSG_BODY_LENGTH) {
+          logger.error("Too long msg received, len is: {}\n", data_len);
+          _server->RemoveSession(_uuid);
+          Close();
           return;
         }
 
         // 创建消息节点
-        _recv_msg_node = std::make_shared<MsgNode>(data_len);
+        _recv_msg_node = std::make_shared<RecvNode>(data_id, data_len);
 
         // 如果消息没有接收全部
         if (bytes_transferred < static_cast<size_t>(data_len)) {
           memcpy(_recv_msg_node->_data + _recv_msg_node->_cur_len, _data.data() + copy_len, bytes_transferred);
           _recv_msg_node->_cur_len += bytes_transferred;
-          memset(_data.data(), 0, MAX_LENGTH);
 
-          _sock.async_read_some(boost::asio::buffer(_data.data(), MAX_LENGTH),
+          memset(_data.data(), 0, std::min(static_cast<size_t>(MSG_BODY_LENGTH), _data.size()));
+          _sock.async_read_some(boost::asio::buffer(_data.data(), MSG_BODY_LENGTH),
           [self = shared_from_this()](const boost::system::error_code &errc, size_t bytes) -> void {
             self->handle_read(errc, bytes);
           });
@@ -117,34 +134,35 @@ void Session::handle_read(const boost::system::error_code &err, std::size_t byte
 
         // 如果接收到的数据更长的话，则先接收当前节点的数据
         memcpy(_recv_msg_node->_data + _recv_msg_node->_cur_len, _data.data() + copy_len, static_cast<size_t>(data_len));
+
         _recv_msg_node->_cur_len += data_len;
         copy_len += static_cast<size_t>(data_len);
         bytes_transferred -= static_cast<size_t>(data_len);
-        _recv_msg_node->_data[_recv_msg_node->_max_len] = '\0';
-        std::cout << std::format("receive data is: {}\n", _recv_msg_node->_data);
+        _recv_msg_node->_data[_recv_msg_node->_msg_len] = '\0';
 
-        // 至此，分支1的接收逻辑走完了，调用Send测试一下
+        // 先读一下数据
         Json::CharReaderBuilder read_builder;
         std::stringstream strste{_recv_msg_node->_data};
         Json::Value recv_data;
         std::string errors;
         if (Json::parseFromStream(read_builder, strste, &recv_data, &errors)) {
-          std::cout << std::format("recv id is: {}, recv data is: {}", recv_data["id"].asString(), recv_data["data"].asString());
+          std::cout << std::format("recv test is: {}, recv data is: {}\n", recv_data["test"].asString(), recv_data["data"].asString());
         }
 
+        // 再测试一下发送
         recv_data["data"] = "server has received msg, " + recv_data["data"].asString();
         Json::StreamWriterBuilder write_builder;
         std::string send_str = Json::writeString(write_builder, recv_data);
 
-        Send(send_str.data(), send_str.length());
+        Send(data_id, static_cast<short>(send_str.length()), send_str.c_str());
 
         // 处理剩余的数据
         _head_parse.store(false, std::memory_order_release);
-        memset(_recv_head_node->_data, 0, static_cast<size_t>(_recv_head_node->_max_len));
+        memset(_recv_head_node->_data, 0, MSG_HEAD_TOTAL_LEN);
 
         if (bytes_transferred <= 0) {
-          memset(_data.data(), 0, MAX_LENGTH);
-          _sock.async_read_some(boost::asio::buffer(_data.data(), MAX_LENGTH),
+          memset(_data.data(), 0, std::min(static_cast<size_t>(MSG_BODY_LENGTH), _data.size()));
+          _sock.async_read_some(boost::asio::buffer(_data.data(), MSG_BODY_LENGTH),
             [self = shared_from_this()](const boost::system::error_code& eee, size_t bbb) -> void {
               self->handle_read(eee, bbb);
             }
@@ -156,14 +174,14 @@ void Session::handle_read(const boost::system::error_code &err, std::size_t byte
       }
 
       // 处理完头部且剩余部分不足总长度return分支之后
-      auto msg_remain = static_cast<size_t>(_recv_msg_node->_max_len - _recv_msg_node->_cur_len);
+      auto msg_remain = static_cast<size_t>(_recv_msg_node->_msg_len - _recv_msg_node->_cur_len);
       // 数据不够长的情况下
       if (bytes_transferred < msg_remain) {
         memcpy(_recv_msg_node->_data + _recv_msg_node->_cur_len, _data.data() + copy_len, bytes_transferred);
         _recv_msg_node->_cur_len += bytes_transferred;
-        memset(_data.data(), 0, MAX_LENGTH);
 
-        _sock.async_read_some(boost::asio::buffer(_data.data(), MAX_LENGTH),
+        memset(_data.data(), 0, std::min(static_cast<size_t>(MSG_BODY_LENGTH), _data.size()));
+        _sock.async_read_some(boost::asio::buffer(_data.data(), MSG_BODY_LENGTH),
         [self = shared_from_this()](const boost::system::error_code &errc, size_t bytes) -> void {
           self->handle_read(errc, bytes);
         });
@@ -171,34 +189,35 @@ void Session::handle_read(const boost::system::error_code &err, std::size_t byte
       }
 
       memcpy(_recv_msg_node->_data + _recv_msg_node->_cur_len, _data.data() + copy_len, msg_remain);
+
       _recv_msg_node->_cur_len += msg_remain;
       bytes_transferred -= msg_remain;
       copy_len += msg_remain;
-      _recv_msg_node->_data[_recv_msg_node->_max_len] = '\0';
-      std::cout << std::format("receive data is: {}\n", _recv_msg_node->_data);
+      _recv_msg_node->_data[_recv_msg_node->_msg_len] = '\0';
 
-      // 至此，分支2的接收逻辑走完了，调用Send测试一下
+      // 先读一下数据
       Json::CharReaderBuilder read_builder;
       std::stringstream strste{_recv_msg_node->_data};
       Json::Value recv_data;
       std::string errors;
       if (Json::parseFromStream(read_builder, strste, &recv_data, &errors)) {
-        std::cout << std::format("recv id is: {}, recv data is: {}", recv_data["id"].asString(), recv_data["data"].asString());
+        std::cout << std::format("recv test is: {}, recv data is: {}\n", recv_data["test"].asString(), recv_data["data"].asString());
       }
 
+      // 再测试一下发送
       recv_data["data"] = "server has received msg, " + recv_data["data"].asString();
       Json::StreamWriterBuilder write_builder;
       std::string send_str = Json::writeString(write_builder, recv_data);
 
-      Send(send_str.data(), send_str.length());
+      Send(_recv_msg_node->getMsgId(), static_cast<short>(send_str.length()), send_str.c_str());
 
       // 处理剩余的数据
       _head_parse.store(false, std::memory_order_release);
-      memset(_recv_head_node->_data, 0, static_cast<size_t>(_recv_head_node->_max_len));
+      memset(_recv_head_node->_data, 0, static_cast<size_t>(_recv_head_node->_msg_len));
 
       if (bytes_transferred <= 0) {
-        memset(_data.data(), 0, MAX_LENGTH);
-        _sock.async_read_some(boost::asio::buffer(_data.data(), MAX_LENGTH),
+        memset(_data.data(), 0, std::min(static_cast<size_t>(MSG_BODY_LENGTH), _data.size()));
+        _sock.async_read_some(boost::asio::buffer(_data.data(), MSG_BODY_LENGTH),
           [self = shared_from_this()](const boost::system::error_code& eee, size_t bbb) -> void {
             self->handle_read(eee, bbb);
           }
@@ -216,11 +235,10 @@ void Session::handle_read(const boost::system::error_code &err, std::size_t byte
 void Session::handle_write(const boost::system::error_code& err) {
   if (!err) {
     std::scoped_lock<std::mutex> lock{_send_mtx};
-    logger.info("send data is: {}\n", _send_queue.front()->_data + HEAD_LENGTH);
     _send_queue.pop();
     if (!_send_queue.empty()) {
       auto& node =_send_queue.front();
-      boost::asio::async_write(_sock, boost::asio::buffer(node->_data, static_cast<size_t>(node->_max_len)),
+      boost::asio::async_write(_sock, boost::asio::buffer(node->_data, static_cast<size_t>(node->_msg_len)),
         [self = shared_from_this()](const boost::system::error_code& errc, size_t) -> void {
           self->handle_write(errc);
         }

@@ -1,19 +1,19 @@
 #ifndef SESSION_HPP
 #define SESSION_HPP
 
+#include <array>
 #include <atomic>
 #include <mutex>
 #include <queue>
-#include <array>
 #include <memory>
 #include <cstddef>
 
-#include <boost/system/detail/error_code.hpp>
-#include <boost/asio/io_context.hpp>
 #include <boost/asio/ip/tcp.hpp>
-#include <boost/uuid/random_generator.hpp>
-#include <boost/uuid/uuid_generators.hpp>
 #include <boost/uuid/uuid_io.hpp>
+#include <boost/asio/io_context.hpp>
+#include <boost/uuid/uuid_generators.hpp>
+#include <boost/uuid/random_generator.hpp>
+#include <boost/system/detail/error_code.hpp>
 
 #include <core/CoreExport.hpp>
 #include <global/Global.hpp>
@@ -29,9 +29,12 @@ public:
     _uuid = boost::uuids::to_string(uuid);
   }
 
+  Session(const Session&) = delete;
+  Session& operator=(const Session&) = delete;
+
   void Start();
   void Close();
-  void Send(char *data, size_t leng);
+  void Send(short msg_id, short msg_len, const char *data);
 
   boost::asio::ip::tcp::socket& getSocket() { return _sock; }
   std::string getUUid() { return _uuid; }
@@ -41,8 +44,9 @@ private:
   void handle_write(const boost::system::error_code& err);
 
   boost::asio::ip::tcp::socket _sock;
-  std::array<char, MAX_LENGTH> _data;
+  std::array<char, MSG_BODY_LENGTH> _data;
 
+  // 服务器管理会话使用
   Server *_server;
   std::string _uuid;
 
