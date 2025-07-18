@@ -5,6 +5,7 @@
 #include <queue>
 #include <memory>
 #include <atomic>
+#include <stop_token>
 #include <thread>
 #include <sstream>
 #include <iostream>
@@ -45,8 +46,8 @@ struct LogicSystem::_impl {
     RegisterCallback();
 
     // 启动工作线程
-    _worker_thread = std::jthread([this]() -> void {
-      while (true) {
+    _worker_thread = std::jthread([this](const std::stop_token &stop_token) -> void {
+      while (!stop_token.stop_requested()) {
         std::shared_ptr<LogicNode> logic_node;
 
         {
@@ -73,7 +74,7 @@ struct LogicSystem::_impl {
       while (true) {
         std::shared_ptr<LogicNode> logic_node;
         {
-          std::scoped_lock<std::mutex> lock{_queue_mutex};
+          std::lock_guard<std::mutex> lock{_queue_mutex};
           if (_msg_queue.empty()){
             break;
           }
@@ -130,7 +131,7 @@ LogicSystem::~LogicSystem() {
 }
 
 void LogicSystem::PostMsgToLogicQueue(const std::shared_ptr<LogicNode> &logic_node) {
-  std::unique_lock<std::mutex> lock{_pimpl->_queue_mutex};
+  std::lock_guard<std::mutex> lock{_pimpl->_queue_mutex};
   _pimpl->_msg_queue.push(logic_node);
 
   if (_pimpl->_msg_queue.size() == 1) {
