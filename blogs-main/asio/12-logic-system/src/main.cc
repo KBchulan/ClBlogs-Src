@@ -10,6 +10,6 @@ int main() {
     core::Server server{ioc, 10088};
     ioc.run();
   } catch (const boost::system::error_code& err) {
-    logger.error("error code is: {}\n", err.value());
+    logger.error("error code is: {}", err.value());
   }
 }

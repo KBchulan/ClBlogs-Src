@@ -41,7 +41,7 @@ int main() {
     short head_id_local = 0;
     memcpy(&head_id_local, head_id.data(), HEAD_LENGTH);
     head_id_local = (short)boost::asio::detail::socket_ops::network_to_host_short(static_cast<u_short>(head_id_local));
-    std::cout << "head id is: " << head_id.data() << '\n';
+    std::cout << "head id is: " << head_id_local << '\n';
 
     // 读取头部长度
     std::array<char, HEAD_LENGTH> head_len;

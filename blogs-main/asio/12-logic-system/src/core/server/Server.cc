@@ -28,7 +28,7 @@ void Server::handle_accept(const std::shared_ptr<Session> &new_sess, const boost
     new_sess->Start();
     _sessions[new_sess->getUUid()] = new_sess;
   } else {
-    logger.error("error code is: {}, error msg is: {}\n", err.value(), err.message());
+    logger.error("error code is: {}, error msg is: {}", err.value(), err.message());
   }
 
   start_accept();

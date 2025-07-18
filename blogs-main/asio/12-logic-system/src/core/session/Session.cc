@@ -1,9 +1,8 @@
 #include "Session.hpp"
 
 #include <cstddef>
-#include <sstream>
+#include <memory>
 #include <cstring>
-#include <iostream>
 #include <winsock2.h>
 
 #include <json/json.h>
@@ -14,7 +13,9 @@
 
 #include <middleware/Logger.hpp>
 #include <core/server/Server.hpp>
+#include <core/logic/LogicNode.hpp>
 #include <core/msg-node/MsgNode.hpp>
+#include <core/logic/LogicSystem.hpp>
 
 namespace core {
 
@@ -35,7 +36,7 @@ void Session::Close() {
     boost::system::error_code errc;
     _sock.close(errc);
     if (errc) {
-      logger.warning("Socket close error: {}\n", errc.message());
+      logger.warning("Socket close error: {}", errc.message());
     }
   }
 }
@@ -48,7 +49,7 @@ void Session::Send(short msg_id, short msg_len, const char *data) {
     std::scoped_lock<std::mutex> lock{_send_mtx};
     pending = _send_queue.empty();
     if (_send_queue.size() >= SEND_QUEUE_MAX_LEN){
-      logger.error("the send queue is too long, don't push new bag\n");
+      logger.error("the send queue is too long, don't push new bag");
       return;
     }
     _send_queue.emplace(node);
@@ -100,16 +101,16 @@ void Session::handle_read(const boost::system::error_code &err, std::size_t byte
         memcpy(&data_len, _recv_head_node->_data + MSG_TYPE_LENGTH, MSG_LEN_LENGTH);
         data_id = (short)boost::asio::detail::socket_ops::network_to_host_short(static_cast<u_short>(data_id));
         data_len = (short)boost::asio::detail::socket_ops::network_to_host_short(static_cast<u_short>(data_len));
-        logger.info("receive data id is: {}, data len is: {}\n", data_id, data_len);
+        logger.info("receive data id is: {}, data len is: {}", data_id, data_len);
 
         if (data_id < 0 || data_id > 2000) {
-          logger.error("Invalid msg id, id is: {}\n", data_id);
+          logger.error("Invalid msg id, id is: {}", data_id);
           _server->RemoveSession(_uuid);
           Close();
           return;
         }
         if (data_len > MSG_BODY_LENGTH) {
-          logger.error("Too long msg received, len is: {}\n", data_len);
+          logger.error("Too long msg received, len is: {}", data_len);
           _server->RemoveSession(_uuid);
           Close();
           return;
@@ -140,21 +141,7 @@ void Session::handle_read(const boost::system::error_code &err, std::size_t byte
         bytes_transferred -= static_cast<size_t>(data_len);
         _recv_msg_node->_data[_recv_msg_node->_msg_len] = '\0';
 
-        // 先读一下数据
-        Json::CharReaderBuilder read_builder;
-        std::stringstream strste{_recv_msg_node->_data};
-        Json::Value recv_data;
-        std::string errors;
-        if (Json::parseFromStream(read_builder, strste, &recv_data, &errors)) {
-          std::cout << std::format("recv test is: {}, recv data is: {}\n", recv_data["test"].asString(), recv_data["data"].asString());
-        }
-
-        // 再测试一下发送
-        recv_data["data"] = "server has received msg, " + recv_data["data"].asString();
-        Json::StreamWriterBuilder write_builder;
-        std::string send_str = Json::writeString(write_builder, recv_data);
-
-        Send(data_id, static_cast<short>(send_str.length()), send_str.c_str());
+        logicSystem.PostMsgToLogicQueue(std::make_shared<LogicNode>(shared_from_this(), std::dynamic_pointer_cast<RecvNode>(_recv_msg_node)));
 
         // 处理剩余的数据
         _head_parse.store(false, std::memory_order_release);
@@ -195,21 +182,7 @@ void Session::handle_read(const boost::system::error_code &err, std::size_t byte
       copy_len += msg_remain;
       _recv_msg_node->_data[_recv_msg_node->_msg_len] = '\0';
 
-      // 先读一下数据
-      Json::CharReaderBuilder read_builder;
-      std::stringstream strste{_recv_msg_node->_data};
-      Json::Value recv_data;
-      std::string errors;
-      if (Json::parseFromStream(read_builder, strste, &recv_data, &errors)) {
-        std::cout << std::format("recv test is: {}, recv data is: {}\n", recv_data["test"].asString(), recv_data["data"].asString());
-      }
-
-      // 再测试一下发送
-      recv_data["data"] = "server has received msg, " + recv_data["data"].asString();
-      Json::StreamWriterBuilder write_builder;
-      std::string send_str = Json::writeString(write_builder, recv_data);
-
-      Send(_recv_msg_node->getMsgId(), static_cast<short>(send_str.length()), send_str.c_str());
+      logicSystem.PostMsgToLogicQueue(std::make_shared<LogicNode>(shared_from_this(), std::dynamic_pointer_cast<RecvNode>(_recv_msg_node)));
 
       // 处理剩余的数据
       _head_parse.store(false, std::memory_order_release);
@@ -226,7 +199,7 @@ void Session::handle_read(const boost::system::error_code &err, std::size_t byte
       }
     }
   } else {
-    logger.error("read error, err msg is: {}\n", err.message());
+    logger.error("read error, err msg is: {}", err.message());
     _server->RemoveSession(_uuid);
     Close();
   }
@@ -245,7 +218,7 @@ void Session::handle_write(const boost::system::error_code& err) {
       );
     }
   } else {
-    logger.error("write error, err msg is: {}\n", err.message());
+    logger.error("write error, err msg is: {}", err.message());
     _server->RemoveSession(_uuid);
     Close();
   }

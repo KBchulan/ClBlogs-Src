@@ -10,6 +10,7 @@
 namespace core {
 
 class Session;
+class LogicNode;
 class CORE_EXPORT LogicSystem final : public global::Singleton<LogicSystem> {
   friend class global::Singleton<LogicSystem>;
 
@@ -19,13 +20,15 @@ class CORE_EXPORT LogicSystem final : public global::Singleton<LogicSystem> {
     * @param msg_id 消息ID
     * @param data 消息数据
     **/
-  using FunCallBack = std::function<void(std::shared_ptr<Session>, short, const char*)>;
+  using FunCallBack = std::function<void(const std::shared_ptr<Session>&, short, const char*)>;
 
 private:
   LogicSystem();
 
 public:
   ~LogicSystem();
+
+  void PostMsgToLogicQueue(const std::shared_ptr<LogicNode> &logic_node);
 
 private:
   struct _impl;
