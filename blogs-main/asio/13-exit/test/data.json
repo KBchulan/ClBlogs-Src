@@ -1,0 +1,12 @@
+{
+  "name": "chulan",
+  "age": 20,
+  "height": 135.5,
+  "is_student": true,
+  "spouse": null,
+  "hobbies": ["coding", "reading"],
+  "address": {
+    "city": "PingDingShan",
+    "country": "China"
+  }
+}
