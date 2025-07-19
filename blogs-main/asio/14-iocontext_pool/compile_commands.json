@@ -1,0 +1,26 @@
+[
+{
+  "directory": "E:/code/ClBlogs-Src/blogs-main/asio/13-exit/build",
+  "command": "C:\\msys64\\ucrt64\\bin\\c++.exe -IE:/code/ClBlogs-Src/blogs-main/asio/13-exit/src -IE:/code/ClBlogs-Src/blogs-main/asio/13-exit/include -O3 -DNDEBUG -std=gnu++23 -Wall -Wextra -Wpedantic -Wconversion -Wshadow -Wcast-align -Wcast-qual -Wunused -Woverloaded-virtual -Wformat=2 -Wdouble-promotion -o src\\CMakeFiles\\CMakeTemplate.dir\\main.cc.obj -c E:\\code\\ClBlogs-Src\\blogs-main\\asio\\13-exit\\src\\main.cc",
+  "file": "E:\\code\\ClBlogs-Src\\blogs-main\\asio\\13-exit\\src\\main.cc",
+  "output": "src\\CMakeFiles\\CMakeTemplate.dir\\main.cc.obj"
+},
+{
+  "directory": "E:/code/ClBlogs-Src/blogs-main/asio/13-exit/build",
+  "command": "C:\\msys64\\ucrt64\\bin\\c++.exe -IE:/code/ClBlogs-Src/blogs-main/asio/13-exit/src -IE:/code/ClBlogs-Src/blogs-main/asio/13-exit/include -O3 -DNDEBUG -std=gnu++23 -Wall -Wextra -Wpedantic -Wconversion -Wshadow -Wcast-align -Wcast-qual -Wunused -Woverloaded-virtual -Wformat=2 -Wdouble-promotion -o src\\core\\CMakeFiles\\core.dir\\logic\\LogicSystem.cc.obj -c E:\\code\\ClBlogs-Src\\blogs-main\\asio\\13-exit\\src\\core\\logic\\LogicSystem.cc",
+  "file": "E:\\code\\ClBlogs-Src\\blogs-main\\asio\\13-exit\\src\\core\\logic\\LogicSystem.cc",
+  "output": "src\\core\\CMakeFiles\\core.dir\\logic\\LogicSystem.cc.obj"
+},
+{
+  "directory": "E:/code/ClBlogs-Src/blogs-main/asio/13-exit/build",
+  "command": "C:\\msys64\\ucrt64\\bin\\c++.exe -IE:/code/ClBlogs-Src/blogs-main/asio/13-exit/src -IE:/code/ClBlogs-Src/blogs-main/asio/13-exit/include -O3 -DNDEBUG -std=gnu++23 -Wall -Wextra -Wpedantic -Wconversion -Wshadow -Wcast-align -Wcast-qual -Wunused -Woverloaded-virtual -Wformat=2 -Wdouble-promotion -o src\\core\\CMakeFiles\\core.dir\\server\\Server.cc.obj -c E:\\code\\ClBlogs-Src\\blogs-main\\asio\\13-exit\\src\\core\\server\\Server.cc",
+  "file": "E:\\code\\ClBlogs-Src\\blogs-main\\asio\\13-exit\\src\\core\\server\\Server.cc",
+  "output": "src\\core\\CMakeFiles\\core.dir\\server\\Server.cc.obj"
+},
+{
+  "directory": "E:/code/ClBlogs-Src/blogs-main/asio/13-exit/build",
+  "command": "C:\\msys64\\ucrt64\\bin\\c++.exe -IE:/code/ClBlogs-Src/blogs-main/asio/13-exit/src -IE:/code/ClBlogs-Src/blogs-main/asio/13-exit/include -O3 -DNDEBUG -std=gnu++23 -Wall -Wextra -Wpedantic -Wconversion -Wshadow -Wcast-align -Wcast-qual -Wunused -Woverloaded-virtual -Wformat=2 -Wdouble-promotion -o src\\core\\CMakeFiles\\core.dir\\session\\Session.cc.obj -c E:\\code\\ClBlogs-Src\\blogs-main\\asio\\13-exit\\src\\core\\session\\Session.cc",
+  "file": "E:\\code\\ClBlogs-Src\\blogs-main\\asio\\13-exit\\src\\core\\session\\Session.cc",
+  "output": "src\\core\\CMakeFiles\\core.dir\\session\\Session.cc.obj"
+}
+]
