@@ -2,6 +2,7 @@
 
 #include <memory>
 
+#include <core/io/IOPool.hpp>
 #include <middleware/Logger.hpp>
 #include <core/session/Session.hpp>
 
@@ -17,7 +18,8 @@ Server::Server(boost::asio::io_context &ioc, unsigned short port)
 }
 
 void Server::start_accept() {
-  auto new_sess = std::make_shared<Session>(_ioc, this);
+  auto &ioc = ioPool.getIocontext();
+  auto new_sess = std::make_shared<Session>(ioc, this);
   _accep.async_accept(new_sess->getSocket(), [this, new_sess](boost::system::error_code err) -> void {
     handle_accept(new_sess, err);
   });
