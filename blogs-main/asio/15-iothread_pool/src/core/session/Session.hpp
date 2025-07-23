@@ -45,6 +45,7 @@ private:
 
   boost::asio::ip::tcp::socket _sock;
   std::array<char, MSG_BODY_LENGTH> _data;
+  std::atomic_bool _is_closed{false};
 
   // 服务器管理会话使用
   Server *_server;
@@ -57,7 +58,7 @@ private:
   // 接收节点的处理
   std::shared_ptr<MsgNode> _recv_head_node;
   std::shared_ptr<MsgNode> _recv_msg_node;
-  std::atomic_bool _head_parse;
+  std::atomic_bool _head_parse{false};
 };
 
 } // namespace core

@@ -20,7 +20,6 @@
 namespace core {
 
 void Session::Start() {
-  _head_parse.store(false, std::memory_order_release);
   _recv_head_node = std::make_shared<MsgNode>(MSG_HEAD_TOTAL_LEN);
 
   memset(_data.data(), 0, std::min(static_cast<size_t>(MSG_BODY_LENGTH), _data.size()));
@@ -32,12 +31,16 @@ void Session::Start() {
 }
 
 void Session::Close() {
-  if (_sock.is_open()) {
-    boost::system::error_code errc;
-    _sock.close(errc);
-    if (errc) {
-      logger.warning("Socket close error: {}", errc.message());
+  bool expected = false;
+  if (_is_closed.compare_exchange_strong(expected, true)) {
+    if (_sock.is_open()) {
+      boost::system::error_code errc;
+      _sock.close(errc);
+      if (errc) {
+        logger.warning("Socket close error: {}", errc.message());
+      }
     }
+    _server->RemoveSession(_uuid);
   }
 }
 
@@ -105,13 +108,11 @@ void Session::handle_read(const boost::system::error_code &err, std::size_t byte
 
         if (data_id < 0 || data_id > 2000) {
           logger.error("Invalid msg id, id is: {}", data_id);
-          _server->RemoveSession(_uuid);
           Close();
           return;
         }
         if (data_len > MSG_BODY_LENGTH) {
           logger.error("Too long msg received, len is: {}", data_len);
-          _server->RemoveSession(_uuid);
           Close();
           return;
         }
@@ -200,7 +201,6 @@ void Session::handle_read(const boost::system::error_code &err, std::size_t byte
     }
   } else {
     logger.error("read error, err msg is: {}", err.message());
-    _server->RemoveSession(_uuid);
     Close();
   }
 }
@@ -219,7 +219,6 @@ void Session::handle_write(const boost::system::error_code& err) {
     }
   } else {
     logger.error("write error, err msg is: {}", err.message());
-    _server->RemoveSession(_uuid);
     Close();
   }
 }
