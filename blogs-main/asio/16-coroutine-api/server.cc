@@ -1,4 +1,3 @@
-#include <array>
 #include <boost/asio/co_spawn.hpp>
 #include <boost/asio/detached.hpp>
 #include <boost/asio/ip/address_v4.hpp>
@@ -12,6 +11,7 @@
 #include <boost/system/system_error.hpp>
 
 #include <iostream>
+#include <array>
 
 boost::asio::awaitable<void> echo(boost::asio::ip::tcp::socket soc) {
   try {
