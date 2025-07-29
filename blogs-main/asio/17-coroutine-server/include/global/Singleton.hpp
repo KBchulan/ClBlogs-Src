@@ -15,21 +15,21 @@ namespace global {
 
 template <typename T>
 class Singleton {
- public:
+public:
   static T &getInstance() noexcept {
     static T instance;
     return instance;
   }
 
-  Singleton<T>(const Singleton<T> &) = delete;
-  Singleton<T> &operator=(const Singleton<T> &) = delete;
+  Singleton(const Singleton &) = delete;
+  Singleton &operator=(const Singleton &) = delete;
 
-  Singleton<T>(Singleton<T> &&) = delete;
-  Singleton<T> &operator=(Singleton<T> &&) = delete;
+  Singleton(Singleton &&) = delete;
+  Singleton &operator=(Singleton &&) = delete;
 
- protected:
+protected:
   Singleton() = default;
-  ~Singleton() = default;
+  virtual ~Singleton() = default;
 };
 
 }  // namespace global

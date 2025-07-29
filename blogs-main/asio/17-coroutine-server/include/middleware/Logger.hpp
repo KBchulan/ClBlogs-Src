@@ -17,6 +17,7 @@
 
 #include <cstdint>
 #include <string_view>
+
 #include <global/Singleton.hpp>
 
 namespace middleware {
@@ -26,12 +27,14 @@ enum class LogLevel : std::uint8_t {
   DEBUG,
   INFO,
   WARNING,
-  ERROR,
+  ERROR_LEVEL,
   FATAL
 };
 
 class Logger final : public global::Singleton<Logger> {
- public:
+  friend class global::Singleton<Logger>;
+
+public:
   // 标准打印
   template <typename... Args>
   void print(std::string_view format, Args &&...args) const noexcept {
@@ -76,7 +79,7 @@ class Logger final : public global::Singleton<Logger> {
 
   template <typename... Args>
   void error(std::string_view format, Args &&...args) const noexcept {
-    log(LogLevel::ERROR, fmt::fg(fmt::color::red), format, std::forward<Args>(args)...);
+    log(LogLevel::ERROR_LEVEL, fmt::fg(fmt::color::red), format, std::forward<Args>(args)...);
   }
 
   template <typename... Args>
@@ -96,14 +99,14 @@ class Logger final : public global::Singleton<Logger> {
     fatal("This is a fatal message");
   }
 
- private:
+private:
   static std::string_view getLevelString(LogLevel level) noexcept {
     switch (level) {
       case LogLevel::TRACE:   return "TRACE";
       case LogLevel::DEBUG:   return "DEBUG";
       case LogLevel::INFO:    return "INFO";
       case LogLevel::WARNING: return "WARNING";
-      case LogLevel::ERROR:   return "ERROR";
+      case LogLevel::ERROR_LEVEL:   return "ERROR";
       case LogLevel::FATAL:   return "FATAL";
       default:                return "UNKNOWN";
     }
