@@ -11,14 +11,5 @@
 #ifndef GLOBAL_HPP
 #define GLOBAL_HPP
 
-#include <global/Singleton.hpp>
-
-namespace global {
-
-class GlobalVariable final : public Singleton<GlobalVariable> {};
-
-} // namespace global
-
-#define globalVariable global::GlobalVariable::getInstance()
 
 #endif // GLOBAL_HPP

@@ -1,0 +1,14 @@
+[
+{
+  "directory": "E:/code/ClBlogs-Src/blogs-main/asio/18-beast-http/build",
+  "command": "C:\\msys64\\ucrt64\\bin\\c++.exe -IE:/code/ClBlogs-Src/blogs-main/asio/18-beast-http/include -IE:/code/ClBlogs-Src/blogs-main/asio/18-beast-http/src -O3 -DNDEBUG -std=gnu++23 -Wall -Wextra -Wpedantic -Wconversion -Wshadow -Wcast-align -Wcast-qual -Wunused -Woverloaded-virtual -Wformat=2 -Wdouble-promotion -o src\\CMakeFiles\\CMakeTemplate.dir\\main.cc.obj -c E:\\code\\ClBlogs-Src\\blogs-main\\asio\\18-beast-http\\src\\main.cc",
+  "file": "E:\\code\\ClBlogs-Src\\blogs-main\\asio\\18-beast-http\\src\\main.cc",
+  "output": "src\\CMakeFiles\\CMakeTemplate.dir\\main.cc.obj"
+},
+{
+  "directory": "E:/code/ClBlogs-Src/blogs-main/asio/18-beast-http/build",
+  "command": "C:\\msys64\\ucrt64\\bin\\c++.exe -IE:/code/ClBlogs-Src/blogs-main/asio/18-beast-http/src -IE:/code/ClBlogs-Src/blogs-main/asio/18-beast-http/include -O3 -DNDEBUG -std=gnu++23 -Wall -Wextra -Wpedantic -Wconversion -Wshadow -Wcast-align -Wcast-qual -Wunused -Woverloaded-virtual -Wformat=2 -Wdouble-promotion -o src\\core\\CMakeFiles\\core.dir\\keep.cc.obj -c E:\\code\\ClBlogs-Src\\blogs-main\\asio\\18-beast-http\\src\\core\\keep.cc",
+  "file": "E:\\code\\ClBlogs-Src\\blogs-main\\asio\\18-beast-http\\src\\core\\keep.cc",
+  "output": "src\\core\\CMakeFiles\\core.dir\\keep.cc.obj"
+}
+]

@@ -21,10 +21,10 @@ class Singleton {
     return instance;
   }
 
-  Singleton(const Singleton<T> &) = delete;
+  Singleton<T>(const Singleton<T> &) = delete;
   Singleton<T> &operator=(const Singleton<T> &) = delete;
 
-  Singleton(Singleton<T> &&) = delete;
+  Singleton<T>(Singleton<T> &&) = delete;
   Singleton<T> &operator=(Singleton<T> &&) = delete;
 
  protected:

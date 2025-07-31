@@ -16,8 +16,9 @@
 #include <fmt/ranges.h>
 
 #include <cstdint>
-#include <global/Singleton.hpp>
 #include <string_view>
+
+#include <global/Singleton.hpp>
 
 namespace middleware {
 
@@ -26,7 +27,7 @@ enum class LogLevel : std::uint8_t {
   DEBUG,
   INFO,
   WARNING,
-  ERROR,
+  ERROR_LEVEL,
   FATAL
 };
 
@@ -76,7 +77,7 @@ class Logger final : public global::Singleton<Logger> {
 
   template <typename... Args>
   void error(std::string_view format, Args &&...args) const noexcept {
-    log(LogLevel::ERROR, fmt::fg(fmt::color::red), format, std::forward<Args>(args)...);
+    log(LogLevel::ERROR_LEVEL, fmt::fg(fmt::color::red), format, std::forward<Args>(args)...);
   }
 
   template <typename... Args>
@@ -103,7 +104,7 @@ class Logger final : public global::Singleton<Logger> {
       case LogLevel::DEBUG:   return "DEBUG";
       case LogLevel::INFO:    return "INFO";
       case LogLevel::WARNING: return "WARNING";
-      case LogLevel::ERROR:   return "ERROR";
+      case LogLevel::ERROR_LEVEL:   return "ERROR";
       case LogLevel::FATAL:   return "FATAL";
       default:                return "UNKNOWN";
     }

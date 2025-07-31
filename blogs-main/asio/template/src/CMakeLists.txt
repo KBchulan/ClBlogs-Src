@@ -35,7 +35,7 @@ endif()
 target_link_libraries(
   ${PROJECT_NAME} PRIVATE
   ${FMT_LIBRARIES} # fmt库
-  ws2_32 # ws2_32
+  ${JSONCPP_LIBRARIES} # jsoncpp库
 )
 
 # 安装可执行文件
