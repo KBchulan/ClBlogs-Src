@@ -1,0 +1,35 @@
+cmake_minimum_required(VERSION 3.31)
+
+project(server1)
+
+set(CMAKE_CXX_STANDARD 23)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(CMAKE_CXX_EXTENSIONS OFF)
+
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wextra -Wpedantic")
+set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -O0 -g3")
+set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -O3 -DNDEBUG")
+set(CMAKE_CXX_FLAGS_RELWITHDEBINFO "${CMAKE_CXX_FLAGS_RELWITHDEBINFO} -O2 -g")
+set(CMAKE_CXX_FLAGS_MINSIZEREL "${CMAKE_CXX_FLAGS_MINSIZEREL} -Os -DNDEBUG")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fno-exceptions -fno-rtti")
+
+find_package(PkgConfig REQUIRED)
+pkg_check_modules(PROTOBUF REQUIRED protobuf)
+pkg_check_modules(GRPC REQUIRED grpc++)
+
+file(GLOB_RECURSE SOURCES "*.cc" "*.h")
+
+add_executable(${PROJECT_NAME} ${SOURCES})
+
+target_link_libraries(${PROJECT_NAME} PRIVATE
+    ${PROTOBUF_LIBRARIES}
+    ${GRPC_LIBRARIES}
+    ws2_32
+    mswsock
+    stdc++exp
+)
+
+target_compile_options(${PROJECT_NAME} PRIVATE
+    ${PROTOBUF_CFLAGS_OTHER}
+    ${GRPC_CFLAGS_OTHER}
+)
