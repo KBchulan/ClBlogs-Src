@@ -9,7 +9,7 @@ fn greet_world() {
     }
 }
 
-fn main() {
+fn complex_func() {
     let penguin_data = "\
    common name,length (cm)
    Little penguin,33
@@ -47,4 +47,9 @@ fn main() {
             println!("{}, {}cm", name, length);
         }
     }
+}
+
+fn main() {
+    greet_world();
+    complex_func();
 }

@@ -12,9 +12,14 @@ fn safe_use_var() {
     println!("The value of x is now: {}", x);
 }
 
-fn unuse_var() {
+fn unuse_var_1() {
     let _x = 5;
     let y = 10;
+}
+
+#[allow(unused_variables)]
+fn unuse_var_2() {
+    let x = 5;
 }
 
 fn deconstruct() {
@@ -57,7 +62,7 @@ fn shallow_use() {
 fn main() {
     error_use_var();
     safe_use_var();
-    unuse_var();
+    unuse_var_1();
     deconstruct();
     test();
     const_use();
