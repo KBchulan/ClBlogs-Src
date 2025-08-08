@@ -29,10 +29,36 @@ fn borrow_use() {
     assert_eq!(*y, 10);
 }
 
+fn borrow_use_2() {
+    let mut str = String::from("hello");
+    change(&mut str);
+    println!("str is: {}", str);
+}
+
+fn change(str: &mut String) {
+    str.push_str(", world!");
+}
+
+fn borrow_use_3() {
+    let mut str = String::from("hello");
+
+    let s1 = &str;
+    let s3: &mut String = &mut str;
+    let s2 = &str;
+
+    // 加上下面这一行会报错
+    // println!("s1 is: {}, s2 is: {}, s3 is: {}", s1, s2, s3);
+}
+
+// fn dange() -> &String {
+//     let str = String::from("hello");
+//     &str
+// }
+
 fn main() {
     // string_use();
     // bind_use_1();
     // bind_use_2();
     // bind_use_3();
-    borrow_use();
+    borrow_use_2();
 }
