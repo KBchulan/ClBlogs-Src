@@ -1,7 +1,6 @@
 #include <print>
 #include <processthreadsapi.h>
 #include <thread>
-#include <windows.h>
 
 void func1_err() {
   // 创建线程1
@@ -54,9 +53,20 @@ void func3() {
   std::print("Current thread ID: {}\n", id);
 }
 
+void func4() {
+  thread_local int thread_local_var = 0;
+
+  std::jthread thr1{[&]() -> void {
+    thread_local_var++;
+    std::print("Thread 1, thread_local_var: {}\n", thread_local_var);  // 1
+  }};
+
+  std::print("Main Thread, thread_local_var: {}\n", thread_local_var); // 0
+}
+
 int main() {
   try {
-    func3();
+    func4();
   } catch (const std::exception &e) {
     std::print("Exception: {}\n", e.what());
   } catch (...) {
