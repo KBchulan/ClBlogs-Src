@@ -10,38 +10,42 @@ template <typename T> class BufferedChannel {
 public:
   explicit BufferedChannel(size_t capacity) : _capacity(capacity) {
     if (capacity == 0) {
-      throw std::invalid_argument(
-          "BufferedChannel capacity must be at least 1.");
+      throw std::invalid_argument("BufferedChannel capacity must be at least 1.");
     }
   }
 
   void send(T value) {
-    std::unique_lock<std::mutex> lock(_mtx);
+    {
+      std::unique_lock<std::mutex> lock(_mtx);
 
-    _cv_not_full.wait(lock, [this]() -> bool {
-      return _buffer.size() < _capacity || _closed;
-    });
+      _cv_not_full.wait(lock, [this]() -> bool {
+        return _buffer.size() < _capacity || _closed;
+      });
 
-    if (_closed) {
-      throw std::runtime_error("Send on a closed channel");
+      if (_closed) {
+        throw std::runtime_error("Send on a closed channel");
+      }
+
+      _buffer.push(std::move(value));
     }
-
-    _buffer.push(std::move(value));
 
     _cv_not_empty.notify_one();
   }
 
   std::optional<T> receive() {
-    std::unique_lock<std::mutex> lock(_mtx);
+    std::optional<T> value;
+    {
+      std::unique_lock<std::mutex> lock(_mtx);
 
-    _cv_not_empty.wait(lock, [this]() { return !_buffer.empty() || _closed; });
+      _cv_not_empty.wait(lock, [this]() { return !_buffer.empty() || _closed; });
 
-    if (_buffer.empty() && _closed) {
-      return std::nullopt;
+      if (_buffer.empty() && _closed) {
+        return std::nullopt;
+      }
+
+      value = std::move(_buffer.front());
+      _buffer.pop();
     }
-
-    T value = std::move(_buffer.front());
-    _buffer.pop();
 
     _cv_not_full.notify_one();
 
@@ -91,6 +95,4 @@ int main() {
       }
     }
   });
-
-
 }
