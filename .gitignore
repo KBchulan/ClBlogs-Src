@@ -30,5 +30,6 @@ package-lock.json
 *.exe
 
 build
+*build
 
 .cache
