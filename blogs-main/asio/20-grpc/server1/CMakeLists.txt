@@ -24,9 +24,6 @@ add_executable(${PROJECT_NAME} ${SOURCES})
 target_link_libraries(${PROJECT_NAME} PRIVATE
     ${PROTOBUF_LIBRARIES}
     ${GRPC_LIBRARIES}
-    ws2_32
-    mswsock
-    stdc++exp
 )
 
 target_compile_options(${PROJECT_NAME} PRIVATE

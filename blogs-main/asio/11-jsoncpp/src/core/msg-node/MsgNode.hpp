@@ -7,7 +7,6 @@
 
 #include <global/Global.hpp>
 #include <core/CoreExport.hpp>
-#include <winsock2.h>
 
 namespace core {
 

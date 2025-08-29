@@ -6,7 +6,6 @@
 
 #include <global/Global.hpp>
 #include <core/CoreExport.hpp>
-#include <winsock2.h>
 
 #include <boost/asio/detail/socket_ops.hpp>
 

@@ -12,7 +12,6 @@
 #include <core/server/Server.hpp>
 
 #include <iostream>
-#include <winsock2.h>
 
 namespace core {
 

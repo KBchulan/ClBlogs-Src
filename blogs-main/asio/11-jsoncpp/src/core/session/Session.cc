@@ -13,7 +13,6 @@
 #include <json/writer.h>
 #include <middleware/Logger.hpp>
 #include <sstream>
-#include <winsock2.h>
 
 namespace core {
 
