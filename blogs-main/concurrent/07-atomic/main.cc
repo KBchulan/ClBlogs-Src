@@ -132,9 +132,65 @@ void func5() {
   std::print("z = {}\n", z);
 }
 
+void func6() {
+  std::atomic_bool flag1{false};
+  std::atomic_bool flag2{false};
+  std::atomic_int32_t counter{0};
+
+  std::jthread thr1{[&] -> void {
+    flag1.store(true, std::memory_order_relaxed);
+    std::atomic_thread_fence(std::memory_order_release);
+    flag2.store(true, std::memory_order_relaxed);
+  }};
+
+  std::jthread thr2{[&] -> void {
+    while (!flag2.load(std::memory_order_relaxed)) {
+      std::this_thread::yield();
+    }
+
+    std::atomic_thread_fence(std::memory_order_acquire);
+
+    if (flag1.load(std::memory_order_relaxed)) {
+      counter.fetch_add(1, std::memory_order_relaxed);
+    }
+  }};
+
+  thr1.join();
+  thr2.join();
+  assert(counter.load(std::memory_order_relaxed) == 1);
+}
+
+void func7() {
+  std::atomic_bool flag1{false};
+  std::atomic_bool flag2{false};
+  std::atomic_int32_t counter{0};
+
+  std::jthread thr1{[&] -> void {
+    flag1.store(true, std::memory_order_relaxed);
+    std::atomic_signal_fence(std::memory_order_release);
+    flag2.store(true, std::memory_order_relaxed);
+  }};
+
+  std::jthread thr2{[&] -> void {
+    while (!flag2.load(std::memory_order_relaxed)) {
+      std::this_thread::yield();
+    }
+
+    std::atomic_signal_fence(std::memory_order_acquire);
+
+    if (flag1.load(std::memory_order_relaxed)) {
+      counter.fetch_add(1, std::memory_order_relaxed);
+    }
+  }};
+
+  thr1.join();
+  thr2.join();
+  assert(counter.load(std::memory_order_relaxed) == 1);
+}
+
 int main() {
   try {
-    func4();
+    func6();
   } catch (std::exception& e) {
     std::print("Exception: {}\n", e.what());
   } catch (...) {
