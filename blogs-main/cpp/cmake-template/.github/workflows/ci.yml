@@ -1,0 +1,28 @@
+name: C/C++ CI
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v3
+
+    - name: configure
+      run: cmake -S . -B build -DBUILD_TESTING=ON -DENABLE_ASAN=ON -DENABLE_UBSAN=ON -DENABLE_CPPCHECK=ON
+
+    - name: build
+      run: cmake --build build
+
+    - name: test
+      run: |
+        cd build
+        ctest
+
+    - name: cppcheck
+      run: cmake --build build --target cppcheck

@@ -12,7 +12,7 @@ add_library(
 
 # 生成导出的头文件
 generate_export_header(
-  utils 
+  utils
   BASE_NAME UTILS
   EXPORT_FILE_NAME ${CMAKE_CURRENT_SOURCE_DIR}/UtilsExport.hpp
 )
@@ -24,10 +24,10 @@ set_target_properties(
   POSITION_INDEPENDENT_CODE ${BUILD_SHARED_LIBS}
 )
 
-# 指定c++23
+# 指定c++26
 target_compile_features(
   utils PUBLIC
-  cxx_std_23
+  cxx_std_26
 )
 
 # 包含头文件

@@ -13,25 +13,24 @@
 
 namespace global {
 
-template <typename T>
-class Singleton {
- public:
+template <typename T> class Singleton {
+public:
   static T &getInstance() noexcept {
     static T instance;
     return instance;
   }
 
-  Singleton(const Singleton<T> &) = delete;
-  Singleton<T> &operator=(const Singleton<T> &) = delete;
+  Singleton(const Singleton &) = delete;
+  Singleton &operator=(const Singleton &) = delete;
 
-  Singleton(Singleton<T> &&) = delete;
-  Singleton<T> &operator=(Singleton<T> &&) = delete;
+  Singleton(Singleton &&) = delete;
+  Singleton &operator=(Singleton &&) = delete;
 
- protected:
+protected:
   Singleton() = default;
   ~Singleton() = default;
 };
 
-}  // namespace global
+} // namespace global
 
-#endif  // SINGLETON_HPP
+#endif // SINGLETON_HPP

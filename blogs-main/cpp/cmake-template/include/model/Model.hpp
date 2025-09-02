@@ -11,6 +11,4 @@
 #ifndef MODEL_HPP
 #define MODEL_HPP
 
-namespace model {}  // namespace model
-
 #endif  // MODEL_HPP

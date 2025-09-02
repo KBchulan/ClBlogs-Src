@@ -1,5 +1,3 @@
-# 这是一个比较通用的cmake配置系统，使用时请将此文件的CMakeTemplate替换为项目名称即可(请善用搜索功能)
-
 # 指定最小版本
 cmake_minimum_required(VERSION 3.25)
 
@@ -9,11 +7,20 @@ project(
   VERSION 1.0.0
 )
 
-# DEBUG模式给一个'd'后缀
-set(CMAKE_DEBUG_POSTFIX d)
-
 # 静/动态库选择
-option(BUILD_SHARED_LIBS "Build shared libraries" OFF)
+option(BUILD_SHARED_LIBS "Build shared libraries" ON)
+
+# 测试选项
+option(BUILD_TESTING "Build tests" OFF)
+
+# AddressSanitizer
+option(ENABLE_ASAN "Enable AddressSanitizer" OFF)
+
+# UndefinedBehaviorSanitizer
+option(ENABLE_UBSAN "Enable UndefinedBehaviorSanitizer" OFF)
+
+# cppcheck
+option(ENABLE_CPPCHECK "Enable cppcheck" OFF)
 
 # 设置构建类型
 if(NOT CMAKE_BUILD_TYPE)
@@ -29,16 +36,15 @@ set(CMAKE_INSTALL_RPATH_USE_LINK_PATH TRUE)
 # 生成编译命令
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
+# DEBUG模式给一个'd'后缀
+set(CMAKE_DEBUG_POSTFIX d)
+
 # 生成配置文件
 configure_file(
   ${PROJECT_SOURCE_DIR}/include/config/Config.hpp.in
   ${PROJECT_SOURCE_DIR}/include/config/Config.hpp
   @ONLY
 )
-
-# 启用test功能
-include(CTest)
-enable_testing()
 
 # 系统自省配置(check_cxx_source_compiles)
 include(CheckCXXSourceCompiles)
@@ -50,7 +56,7 @@ include(CMakePackageConfigHelpers)
 include(CPack)
 include(InstallRequiredSystemLibraries)
 
-# 代码质量检测(g++, clang++)
+# 代码质量检测(gcc, clang)
 function(set_warning_flags target)
   get_target_property(target_type ${target} TYPE)
 
@@ -101,12 +107,67 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
 set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
 
-# 第三方库
-find_package(PkgConfig REQUIRED)
-pkg_check_modules(FMT REQUIRED fmt)
+# fmt
+find_package(fmt QUIET)
+if(NOT fmt_FOUND)
+  include(FetchContent)
+  FetchContent_Declare(
+    fmt
+    GIT_REPOSITORY https://github.com/fmtlib/fmt.git
+    GIT_TAG 10.2.1
+  )
+  FetchContent_MakeAvailable(fmt)
+endif()
 
-# 主入口
+# Google Test
+find_package(GTest QUIET)
+if(NOT GTest_FOUND)
+  include(FetchContent)
+  FetchContent_Declare(
+    googletest
+    GIT_REPOSITORY https://github.com/google/googletest.git
+    GIT_TAG v1.15.2
+  )
+  FetchContent_MakeAvailable(googletest)
+endif()
+
+# 主程序入口
 add_subdirectory(src)
+
+# 测试入口
+if(BUILD_TESTING)
+  include(CTest)
+  enable_testing()
+  include(CTestConfig.cmake)
+  add_subdirectory(tests)
+endif()
+
+# AddressSanitizer
+if(ENABLE_ASAN)
+  target_compile_options(${PROJECT_NAME} PRIVATE -fsanitize=address)
+  target_link_libraries(${PROJECT_NAME} PRIVATE -fsanitize=address)
+endif()
+
+# UndefinedBehaviorSanitizer
+if(ENABLE_UBSAN)
+  target_compile_options(${PROJECT_NAME} PRIVATE -fsanitize=undefined)
+  target_link_libraries(${PROJECT_NAME} PRIVATE -fsanitize=undefined)
+endif()
+
+# cppcheck
+if(ENABLE_CPPCHECK)
+  find_program(CPPCHECK cppcheck)
+  if(CPPCHECK)
+    set(CPPCHECK_COMMAND ${CPPCHECK} --enable=all --suppress=missingIncludeSystem --inconclusive --std=c++26 --project=${CMAKE_BINARY_DIR}/compile_commands.json)
+    add_custom_target(
+      cppcheck
+      COMMAND ${CPPCHECK_COMMAND}
+      COMMENT "Running cppcheck"
+    )
+  else()
+    message(WARNING "cppcheck not found, skipping cppcheck target")
+  endif()
+endif()
 
 # 安装公共头文件
 install(

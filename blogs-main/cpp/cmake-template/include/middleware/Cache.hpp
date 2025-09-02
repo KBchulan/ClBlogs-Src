@@ -11,14 +11,4 @@
 #ifndef CACHE_HPP
 #define CACHE_HPP
 
-#include <global/Singleton.hpp>
-
-namespace middleware {
-
-class Cache final : public global::Singleton<Cache> {};
-
-}  // namespace middleware
-
-#define cache middleware::Cache::getInstance()
-
 #endif  // CACHE_HPP
