@@ -14,13 +14,16 @@ option(BUILD_SHARED_LIBS "Build shared libraries" ON)
 option(BUILD_TESTING "Build tests" OFF)
 
 # AddressSanitizer
-option(ENABLE_ASAN "Enable AddressSanitizer" OFF)
+option(ENABLE_ASAN "Enable AddressSanitizer" ON)
 
 # UndefinedBehaviorSanitizer
-option(ENABLE_UBSAN "Enable UndefinedBehaviorSanitizer" OFF)
+option(ENABLE_UBSAN "Enable UndefinedBehaviorSanitizer" ON)
 
 # cppcheck
 option(ENABLE_CPPCHECK "Enable cppcheck" OFF)
+
+# 性能分析
+option(ENABLE_PROFILING "Enable profiling flags for perf" OFF)
 
 # 设置构建类型
 if(NOT CMAKE_BUILD_TYPE)
@@ -167,6 +170,33 @@ if(ENABLE_CPPCHECK)
   else()
     message(WARNING "cppcheck not found, skipping cppcheck target")
   endif()
+endif()
+
+# 性能分析配置
+if(ENABLE_PROFILING)
+  message(STATUS "Profiling enabled. Compiler flags for perf will be added.")
+  add_compile_options(-g -fno-omit-frame-pointer)
+
+  # FlameGraph
+  find_package(Git QUIET)
+  if(NOT Git_FOUND)
+    message(WARNING "Git not found, skipping FlameGraph setup")
+  else()
+    if(NOT EXISTS ${PROJECT_BINARY_DIR}/flamegraph)
+      message(STATUS "FlameGraph directory not found. Cloning...")
+      include(FetchContent)
+      FetchContent_Declare(
+        flamegraph
+        GIT_REPOSITORY https://github.com/brendangregg/FlameGraph.git
+        GIT_TAG master
+        SOURCE_DIR ${PROJECT_BINARY_DIR}/flamegraph
+      )
+      FetchContent_MakeAvailable(flamegraph)
+    else()
+      message(STATUS "FlameGraph directory already exists. Skipping clone.")
+    endif()
+  endif()
+  file(MAKE_DIRECTORY ${PROJECT_BINARY_DIR}/perf)
 endif()
 
 # 安装公共头文件
