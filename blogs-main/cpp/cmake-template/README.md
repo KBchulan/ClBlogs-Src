@@ -55,4 +55,17 @@ ninja # 或者 cmake --build .
 cmake --build . --target cppcheck
 ```
 
+最后，还提供了通过 **perf + 火焰图** 进行性能分析的功能，如果你需要进行性能分析，可以尝试运行 `scripts/profile.sh` 脚本，不管是普通程序还是服务器类型的程序都可以进行采样，并生成一张漂亮的火焰图，只需要根据提示操作即可：
+
+```bash
+mkdir build && cd build
+
+# 开启性能分析选项
+cmake .. -DENABLE_PROFILING=ON
+ninja # 或者 cmake --build .
+
+# 进行性能分析
+./scripts/profile.sh
+```
+
 最后，本框架还集成了一个 CI 工作流，详细的内容可以自行查阅，对应 CD 流可以根据需要自己完成。
