@@ -10,14 +10,14 @@ project(
 # 静/动态库选择
 option(BUILD_SHARED_LIBS "Build shared libraries" ON)
 
-# 测试选项
-option(BUILD_TESTING "Build tests" OFF)
-
 # AddressSanitizer
 option(ENABLE_ASAN "Enable AddressSanitizer" ON)
 
 # UndefinedBehaviorSanitizer
 option(ENABLE_UBSAN "Enable UndefinedBehaviorSanitizer" ON)
+
+# 测试选项
+option(BUILD_TESTING "Build tests" OFF)
 
 # cppcheck
 option(ENABLE_CPPCHECK "Enable cppcheck" OFF)
@@ -143,18 +143,6 @@ if(BUILD_TESTING)
   enable_testing()
   include(CTestConfig.cmake)
   add_subdirectory(tests)
-endif()
-
-# AddressSanitizer
-if(ENABLE_ASAN)
-  target_compile_options(${PROJECT_NAME} PRIVATE -fsanitize=address)
-  target_link_libraries(${PROJECT_NAME} PRIVATE -fsanitize=address)
-endif()
-
-# UndefinedBehaviorSanitizer
-if(ENABLE_UBSAN)
-  target_compile_options(${PROJECT_NAME} PRIVATE -fsanitize=undefined)
-  target_link_libraries(${PROJECT_NAME} PRIVATE -fsanitize=undefined)
 endif()
 
 # cppcheck

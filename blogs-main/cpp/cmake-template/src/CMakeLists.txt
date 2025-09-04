@@ -12,6 +12,18 @@ set_target_properties(
   DEBUG_POSTFIX ${CMAKE_DEBUG_POSTFIX}
 )
 
+# AddressSanitizer
+if(ENABLE_ASAN)
+  target_compile_options(${PROJECT_NAME} PRIVATE -fsanitize=address)
+  target_link_libraries(${PROJECT_NAME} PRIVATE -fsanitize=address)
+endif()
+
+# UndefinedBehaviorSanitizer
+if(ENABLE_UBSAN)
+  target_compile_options(${PROJECT_NAME} PRIVATE -fsanitize=undefined)
+  target_link_libraries(${PROJECT_NAME} PRIVATE -fsanitize=undefined)
+endif()
+
 # 头文件
 target_include_directories(
   ${PROJECT_NAME} PRIVATE
