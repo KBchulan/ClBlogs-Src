@@ -117,7 +117,7 @@ if(NOT fmt_FOUND)
   FetchContent_Declare(
     fmt
     GIT_REPOSITORY https://github.com/fmtlib/fmt.git
-    GIT_TAG 10.2.1
+    GIT_TAG 11.2.0
   )
   FetchContent_MakeAvailable(fmt)
 endif()
@@ -149,7 +149,7 @@ endif()
 if(ENABLE_CPPCHECK)
   find_program(CPPCHECK cppcheck)
   if(CPPCHECK)
-    set(CPPCHECK_COMMAND ${CPPCHECK} --enable=all --suppress=missingIncludeSystem --inconclusive --std=c++26 --project=${CMAKE_BINARY_DIR}/compile_commands.json)
+    set(CPPCHECK_COMMAND ${CPPCHECK} --enable=all --suppress=missingIncludeSystem --inconclusive --std=c++23 --project=${CMAKE_BINARY_DIR}/compile_commands.json)
     add_custom_target(
       cppcheck
       COMMAND ${CPPCHECK_COMMAND}

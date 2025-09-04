@@ -24,10 +24,10 @@ set_target_properties(
   POSITION_INDEPENDENT_CODE ${BUILD_SHARED_LIBS}
 )
 
-# 指定c++26
+# 指定c++23
 target_compile_features(
   utils PUBLIC
-  cxx_std_26
+  cxx_std_23
 )
 
 # 包含头文件

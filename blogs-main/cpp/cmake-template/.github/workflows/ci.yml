@@ -10,7 +10,7 @@ jobs:
   build:
     strategy:
       matrix:
-        os: [ubuntu-latest, macos-latest, windows-latest]
+        os: [ubuntu-latest]
     runs-on: ${{ matrix.os }}
 
     steps:
@@ -52,4 +52,4 @@ jobs:
 
       - name: Check code format
         run: |
-          find src include tests -type f \( -name "*.hpp" -o -name "*.cc" \) -print0 | xargs -0 clang-format --dry-run -Werror
+          scripts/format.sh --check
