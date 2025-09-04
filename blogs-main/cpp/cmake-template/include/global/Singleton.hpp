@@ -11,11 +11,15 @@
 #ifndef SINGLETON_HPP
 #define SINGLETON_HPP
 
-namespace global {
+namespace global
+{
 
-template <typename T> class Singleton {
+template <typename T>
+class Singleton
+{
 public:
-  static T &getInstance() noexcept {
+  static T &getInstance() noexcept
+  {
     static T instance;
     return instance;
   }
@@ -31,6 +35,6 @@ protected:
   ~Singleton() = default;
 };
 
-} // namespace global
+}  // namespace global
 
-#endif // SINGLETON_HPP
+#endif  // SINGLETON_HPP

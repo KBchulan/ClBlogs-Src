@@ -1,5 +1,6 @@
 #include <middleware/Logger.hpp>
 
-int main() {
+int main()
+{
   logger.showExample();
 }

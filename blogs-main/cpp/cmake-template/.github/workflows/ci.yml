@@ -1,28 +1,55 @@
-name: C/C++ CI
+name: CI
 
 on:
   push:
-    branches: [ "main" ]
+    branches: ["main"]
   pull_request:
-    branches: [ "main" ]
+    branches: ["main"]
 
 jobs:
   build:
-    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
 
     steps:
-    - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
 
-    - name: configure
-      run: cmake -S . -B build -DBUILD_TESTING=ON -DENABLE_ASAN=ON -DENABLE_UBSAN=ON -DENABLE_CPPCHECK=ON
+      - name: Install cppcheck
+        run: |
+          if [ "$RUNNER_OS" == "Linux" ]; then
+            sudo apt-get update
+            sudo apt-get install -y cppcheck
+          elif [ "$RUNNER_OS" == "macOS" ]; then
+            brew install cppcheck
+          elif [ "$RUNNER_OS" == "Windows" ]; then
+            choco install cppcheck
+          fi
+        shell: bash
 
-    - name: build
-      run: cmake --build build
+      - name: Configure
+        run: cmake -S . -B build -DBUILD_TESTING=ON -DENABLE_CPPCHECK=ON
 
-    - name: test
-      run: |
-        cd build
-        ctest
+      - name: Build
+        run: cmake --build build --config Release
 
-    - name: cppcheck
-      run: cmake --build build --target cppcheck
+      - name: Test
+        run: |
+          cd build
+          ctest -C Release
+
+      - name: Static Analysis (cppcheck)
+        run: cmake --build build --target cppcheck
+
+  format-check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install clang-format
+        run: sudo apt-get update && sudo apt-get install -y clang-format
+
+      - name: Check code format
+        run: |
+          find src include tests -type f \( -name "*.hpp" -o -name "*.cc" \) -print0 | xargs -0 clang-format --dry-run -Werror
