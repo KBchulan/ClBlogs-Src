@@ -149,7 +149,15 @@ endif()
 if(ENABLE_CPPCHECK)
   find_program(CPPCHECK cppcheck)
   if(CPPCHECK)
-    set(CPPCHECK_COMMAND ${CPPCHECK} --enable=all --suppress=missingIncludeSystem --inconclusive --std=c++23 --project=${CMAKE_BINARY_DIR}/compile_commands.json)
+    set(CPPCHECK_COMMAND ${CPPCHECK}
+      --enable=all
+      --suppress=missingIncludeSystem
+      --inconclusive
+      --std=c++23
+      --suppress='*:*/_deps/*'
+      --suppress='*:*/build/_deps/*'
+      --project=${CMAKE_BINARY_DIR}/compile_commands.json
+    )
     add_custom_target(
       cppcheck
       COMMAND ${CPPCHECK_COMMAND}
