@@ -1,11 +1,11 @@
 /******************************************************************************
  *
  * @file       Logger.hpp
- * @brief      全局的日志组件
+ * @brief      高性能异步日志组件
  *
  * @author     KBchulan
- * @date       2025/04/03
- * @history
+ * @date       2025/09/05
+ * @history    基于无锁队列的异步日志系统，极致性能优化
  ******************************************************************************/
 
 #ifndef LOGGER_HPP
@@ -13,11 +13,18 @@
 
 #include <fmt/color.h>
 #include <fmt/core.h>
+#include <fmt/format.h>
 #include <fmt/ranges.h>
 
+#include <array>
+#include <atomic>
+#include <chrono>
+#include <cstddef>
 #include <cstdint>
 #include <global/Singleton.hpp>
-#include <string_view>
+#include <global/SuperQueue.hpp>
+#include <string>
+#include <thread>
 
 namespace middleware
 {
@@ -32,85 +39,194 @@ enum class LogLevel : std::uint8_t
   FATAL
 };
 
+// 日志消息结构，用于预分配内存
+struct LogMessage
+{
+  LogMessage() : _level(LogLevel::INFO)
+  {
+    _formatted_message.fill('\0');
+  }
+
+  template <typename... Args>
+  LogMessage(LogLevel lev, const fmt::text_style& sty, const std::string& format, Args&&... args)
+      : _level(lev), _style(sty), _timestamp(std::chrono::steady_clock::now())
+  {
+    auto formatted = fmt::vformat(format, fmt::make_format_args(args...));
+    _message_length = std::min(formatted.length(), MAX_MESSAGE_SIZE - 1);
+    std::memcpy(_formatted_message.data(), formatted.c_str(), _message_length);
+    _formatted_message[_message_length] = '\0';
+  }
+
+  static constexpr size_t MAX_MESSAGE_SIZE = 512;
+
+  LogLevel _level;
+  fmt::text_style _style;
+  std::chrono::steady_clock::time_point _timestamp;
+
+  size_t _message_length{0};
+  std::array<char, MAX_MESSAGE_SIZE> _formatted_message;
+};
+
 class Logger final : public global::Singleton<Logger>
 {
 public:
-  // 标准打印
-  template <typename... Args>
-  void print(std::string_view format, Args &&...args) const noexcept
+  Logger()
   {
-    fmt::print(fmt::runtime(format), std::forward<Args>(args)...);
-    fmt::print("\n");
+    _worker_thread = std::jthread([this] -> void { _logWorker(); });
+    fmt::print(fmt::fg(fmt::color::green), "[Init] Async Logger initialized successfully...\n");
   }
 
-  // 彩色打印
-  template <typename... Args>
-  void print(const fmt::text_style &style, std::string_view format, Args &&...args) const noexcept
+  ~Logger()
   {
-    fmt::print(style, fmt::runtime(format), std::forward<Args>(args)...);
-    fmt::print("\n");
+    _should_stop.store(true, std::memory_order_relaxed);
+
+    _pending_count.fetch_add(1, std::memory_order_release);
+    _pending_count.notify_one();
+
+    if (_worker_thread.joinable())
+    {
+      _worker_thread.join();
+    }
   }
 
-  // 日志级别打印
+  // 普通打印
   template <typename... Args>
-  void log(LogLevel level, const fmt::text_style &style, std::string_view format, Args &&...args) const noexcept
+  [[maybe_unused]] void print(const std::string& format, Args&&... args) const noexcept
   {
-    fmt::print(style, "[{}] ", getLevelString(level));
-    fmt::print(style, fmt::runtime(format), std::forward<Args>(args)...);
-    fmt::print("\n");
+    if (_log_queue.emplace(LogLevel::INFO, fmt::text_style{}, format, std::forward<Args>(args)...))
+    {
+      _pending_count.fetch_add(1, std::memory_order_release);
+      _pending_count.notify_one();
+    }
   }
 
+  // 指定样式进行打印
   template <typename... Args>
-  void trace(std::string_view format, Args &&...args) const noexcept
+  [[maybe_unused]] void print(const fmt::text_style& style, const std::string& format, Args&&... args) const noexcept
   {
-    log(LogLevel::TRACE, fmt::fg(fmt::color::gray), format, std::forward<Args>(args)...);
+    if (_log_queue.emplace(LogLevel::INFO, style, format, std::forward<Args>(args)...))
+    {
+      _pending_count.fetch_add(1, std::memory_order_release);
+      _pending_count.notify_one();
+    }
   }
 
+  // 各个类型的日志
   template <typename... Args>
-  void debug(std::string_view format, Args &&...args) const noexcept
+  [[maybe_unused]] void info(const std::string& format, Args&&... args) const noexcept
   {
-    log(LogLevel::DEBUG, fmt::fg(fmt::color::blue), format, std::forward<Args>(args)...);
-  }
-
-  template <typename... Args>
-  void info(std::string_view format, Args &&...args) const noexcept
-  {
-    log(LogLevel::INFO, fmt::fg(fmt::color::green), format, std::forward<Args>(args)...);
-  }
-
-  template <typename... Args>
-  void warning(std::string_view format, Args &&...args) const noexcept
-  {
-    log(LogLevel::WARNING, fmt::fg(fmt::color::yellow), format, std::forward<Args>(args)...);
-  }
-
-  template <typename... Args>
-  void error(std::string_view format, Args &&...args) const noexcept
-  {
-    log(LogLevel::ERROR, fmt::fg(fmt::color::red), format, std::forward<Args>(args)...);
+    if (_log_queue.emplace(LogLevel::INFO, fmt::fg(fmt::color::green), format, std::forward<Args>(args)...))
+    {
+      _pending_count.fetch_add(1, std::memory_order_release);
+      _pending_count.notify_one();
+    }
   }
 
   template <typename... Args>
-  void fatal(std::string_view format, Args &&...args) const noexcept
+  [[maybe_unused]] void warning(const std::string& format, Args&&... args) const noexcept
   {
-    log(LogLevel::FATAL, fmt::fg(fmt::color::red), format, std::forward<Args>(args)...);
+    if (_log_queue.emplace(LogLevel::WARNING, fmt::fg(fmt::color::yellow), format, std::forward<Args>(args)...))
+    {
+      _pending_count.fetch_add(1, std::memory_order_release);
+      _pending_count.notify_one();
+    }
   }
 
-  // 展示所有的效果示例
-  void showExample() const noexcept
+  template <typename... Args>
+  [[maybe_unused]] void error(const std::string& format, Args&&... args) const noexcept
   {
-    print("This is a normal message");
-    print(fmt::fg(fmt::color::red), "This is a red message");
-    trace("This is a trace message");
-    debug("This is a debug message");
-    info("This is an info message");
-    warning("This is a warning message");
-    error("This is an error message");
-    fatal("This is a fatal message");
+    if (_log_queue.emplace(LogLevel::ERROR, fmt::fg(fmt::color::red), format, std::forward<Args>(args)...))
+    {
+      _pending_count.fetch_add(1, std::memory_order_release);
+      _pending_count.notify_one();
+    }
+  }
+
+  template <typename... Args>
+  [[maybe_unused]] void trace(const std::string& format, Args&&... args) const noexcept
+  {
+    if (_log_queue.emplace(LogLevel::TRACE, fmt::fg(fmt::color::gray), format, std::forward<Args>(args)...))
+    {
+      _pending_count.fetch_add(1, std::memory_order_release);
+      _pending_count.notify_one();
+    }
+  }
+
+  template <typename... Args>
+  [[maybe_unused]] void debug(const std::string& format, Args&&... args) const noexcept
+  {
+    if (_log_queue.emplace(LogLevel::DEBUG, fmt::fg(fmt::color::blue), format, std::forward<Args>(args)...))
+    {
+      _pending_count.fetch_add(1, std::memory_order_release);
+      _pending_count.notify_one();
+    }
+  }
+
+  template <typename... Args>
+  [[maybe_unused]] void fatal(const std::string& format, Args&&... args) const noexcept
+  {
+    if (_log_queue.emplace(LogLevel::FATAL, fmt::fg(fmt::color::red), format, std::forward<Args>(args)...))
+    {
+      _pending_count.fetch_add(1, std::memory_order_release);
+      _pending_count.notify_one();
+    }
+  }
+
+  // 获取队列长度
+  [[nodiscard, maybe_unused]] size_t queueSize() const noexcept
+  {
+    return _pending_count.load(std::memory_order_acquire);
+  }
+
+  // 强制刷新，等待队列清空
+  [[maybe_unused]] void flush() const noexcept
+  {
+    while (!_log_queue.empty())
+    {
+      std::this_thread::sleep_for(std::chrono::microseconds(100));
+    }
   }
 
 private:
-  static std::string_view getLevelString(LogLevel level) noexcept
+  static constexpr size_t QUEUE_CAPACITY = 16384;  // 2^14
+  using LogQueue = global::SuperQueue<LogMessage, QUEUE_CAPACITY>;
+
+  mutable LogQueue _log_queue;
+  std::jthread _worker_thread;
+  std::atomic<bool> _should_stop{false};
+  mutable std::atomic<size_t> _pending_count{0};
+
+  void _logWorker() noexcept
+  {
+    LogMessage msg;
+
+    while (true)
+    {
+      size_t expected = 0;
+      _pending_count.wait(expected, std::memory_order_acquire);
+
+      if (_should_stop.load(std::memory_order_relaxed))
+      {
+        break;
+      }
+
+      // 批量处理消息
+      while (_log_queue.pop(msg))
+      {
+        fmt::print(msg._style, "[{}] {}\n", _getLevelString(msg._level), msg._formatted_message.data());
+
+        _pending_count.fetch_sub(1, std::memory_order_acq_rel);
+      }
+    }
+
+    // 清空剩余日志
+    while (_log_queue.pop(msg))
+    {
+      fmt::print(msg._style, "[{}] {}\n", _getLevelString(msg._level), msg._formatted_message.data());
+    }
+  }
+
+  static constexpr std::string_view _getLevelString(LogLevel level) noexcept
   {
     switch (level)
     {

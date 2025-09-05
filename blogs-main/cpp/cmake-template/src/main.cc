@@ -2,5 +2,5 @@
 
 int main()
 {
-  logger.showExample();
+  logger.info("Hello, {}", "World");
 }
