@@ -12,9 +12,9 @@
 
 #include <atomic>
 #include <chrono>
-#include <tools/Logger.hpp>
 #include <string>
 #include <thread>
+#include <tools/Logger.hpp>
 #include <vector>
 
 class LoggerTest : public ::testing::Test
