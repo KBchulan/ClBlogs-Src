@@ -21,12 +21,11 @@
 #include <chrono>
 #include <cstddef>
 #include <cstdint>
-#include <global/Singleton.hpp>
 #include <global/SuperQueue.hpp>
 #include <string>
 #include <thread>
 
-namespace middleware
+namespace tools
 {
 
 enum class LogLevel : std::uint8_t
@@ -49,7 +48,7 @@ struct LogMessage
 
   template <typename... Args>
   LogMessage(LogLevel lev, const fmt::text_style& sty, const std::string& format, Args&&... args)
-      : _level(lev), _style(sty), _timestamp(std::chrono::steady_clock::now())
+      : _level(lev), _style(sty), _timestamp(std::chrono::system_clock::now())
   {
     auto formatted = fmt::vformat(format, fmt::make_format_args(args...));
     _message_length = std::min(formatted.length(), MAX_MESSAGE_SIZE - 1);
@@ -61,19 +60,19 @@ struct LogMessage
 
   LogLevel _level;
   fmt::text_style _style;
-  std::chrono::steady_clock::time_point _timestamp;
+  std::chrono::system_clock::time_point _timestamp;
 
   size_t _message_length{0};
   std::array<char, MAX_MESSAGE_SIZE> _formatted_message;
 };
 
-class Logger final : public global::Singleton<Logger>
+class Logger
 {
 public:
-  Logger()
+  static Logger& getInstance()
   {
-    _worker_thread = std::jthread([this] -> void { _logWorker(); });
-    fmt::print(fmt::fg(fmt::color::green), "[Init] Async Logger initialized successfully...\n");
+    static Logger instance;
+    return instance;
   }
 
   ~Logger()
@@ -196,6 +195,12 @@ private:
   std::atomic<bool> _should_stop{false};
   mutable std::atomic<size_t> _pending_count{0};
 
+  Logger()
+  {
+    _worker_thread = std::jthread([this] -> void { _logWorker(); });
+    fmt::print(fmt::fg(fmt::color::green), "[Init] Async Logger initialized successfully...\n");
+  }
+
   void _logWorker() noexcept
   {
     LogMessage msg;
@@ -213,7 +218,8 @@ private:
       // 批量处理消息
       while (_log_queue.pop(msg))
       {
-        fmt::print(msg._style, "[{}] {}\n", _getLevelString(msg._level), msg._formatted_message.data());
+        fmt::print(msg._style, "[{}] [{}] {}\n", _getLevelString(msg._level), _formatTimestamp(msg._timestamp),
+                   msg._formatted_message.data());
 
         _pending_count.fetch_sub(1, std::memory_order_acq_rel);
       }
@@ -222,7 +228,8 @@ private:
     // 清空剩余日志
     while (_log_queue.pop(msg))
     {
-      fmt::print(msg._style, "[{}] {}\n", _getLevelString(msg._level), msg._formatted_message.data());
+      fmt::print(msg._style, "[{}] [{}] {}\n", _getLevelString(msg._level), _formatTimestamp(msg._timestamp),
+                 msg._formatted_message.data());
     }
   }
 
@@ -246,10 +253,18 @@ private:
         return "UNKNOWN";
     }
   }
+
+  static std::string _formatTimestamp(const std::chrono::system_clock::time_point& timestamp) noexcept
+  {
+    auto time_t = std::chrono::system_clock::to_time_t(timestamp);
+    std::tm* time = std::localtime(&time_t);
+    return fmt::format("{:04d}-{:02d}-{:02d}-{:02d}:{:02d}", time->tm_year + 1900, time->tm_mon + 1, time->tm_mday,
+                       time->tm_hour, time->tm_min);
+  }
 };
 
-}  // namespace middleware
+}  // namespace tools
 
-#define logger middleware::Logger::getInstance()
+#define logger tools::Logger::getInstance()
 
 #endif  // LOGGER_HPP

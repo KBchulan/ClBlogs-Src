@@ -52,5 +52,3 @@ install(
   FILES_MATCHING PATTERN "*.hpp" PATTERN "*.h"
 )
 
-# 增加配置选项
-option(USE_UTILS "Use utils" ON)

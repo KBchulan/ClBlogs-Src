@@ -12,7 +12,7 @@
 
 #include <atomic>
 #include <chrono>
-#include <middleware/Logger.hpp>
+#include <tools/Logger.hpp>
 #include <string>
 #include <thread>
 #include <vector>
@@ -196,8 +196,8 @@ TEST_F(LoggerTest, ConcurrentMixedLevels)
 // 测试9: 单例
 TEST_F(LoggerTest, SingletonBehavior)
 {
-  auto& logger1 = middleware::Logger::getInstance();
-  auto& logger2 = middleware::Logger::getInstance();
+  auto& logger1 = tools::Logger::getInstance();
+  auto& logger2 = tools::Logger::getInstance();
 
   EXPECT_EQ(&logger1, &logger2);
 }
@@ -253,35 +253,14 @@ TEST_F(LoggerTest, ExtremeThroughputTest)
     thread.join();
   }
 
-  auto send_end = std::chrono::high_resolution_clock::now();
-
   logger.flush();
-
   auto flush_end = std::chrono::high_resolution_clock::now();
 
   EXPECT_EQ(completed_threads.load(), num_threads);
 
-  auto send_duration = std::chrono::duration_cast<std::chrono::microseconds>(send_end - start);
   auto total_duration = std::chrono::duration_cast<std::chrono::microseconds>(flush_end - start);
-
-  double send_time_sec = static_cast<double>(send_duration.count()) / 1000000.0;
   double total_time_sec = static_cast<double>(total_duration.count()) / 1000000.0;
-
-  double send_throughput = static_cast<double>(message_count) / send_time_sec;
   double total_throughput = static_cast<double>(message_count) / total_time_sec;
-
-  std::cout << "测试结果:\n";
-  std::cout << "线程数: " << num_threads << "\n";
-  std::cout << "消息总数: " << message_count << "\n";
-  std::cout << "发送耗时: " << send_duration.count() << " 微秒 (" << static_cast<double>(send_duration.count()) / 1000.0
-            << " 毫秒)\n";
-  std::cout << "总耗时: " << total_duration.count() << " 微秒 (" << static_cast<double>(total_duration.count()) / 1000.0
-            << " 毫秒)\n";
-  std::cout << "发送吞吐量: " << static_cast<int64_t>(send_throughput) << " 消息/秒\n";
-  std::cout << "整体吞吐量: " << static_cast<int64_t>(total_throughput) << " 消息/秒\n";
-  std::cout << "平均每条消息耗时: " << static_cast<double>(total_duration.count()) / static_cast<double>(message_count)
-            << " 微秒\n";
-  std::cout << "=== 多线程极限测试完成 ===\n\n";
 
   EXPECT_GT(total_throughput, 3000000.0);
 
