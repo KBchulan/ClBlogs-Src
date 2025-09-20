@@ -1,8 +1,13 @@
+#include <atomic>
+#include <chrono>
+#include <iostream>
 #include <memory>
 #include <mutex>
 #include <optional>
 #include <shared_mutex>
+#include <thread>
 #include <utility>
+#include <vector>
 
 template <typename T>
 class LockList
@@ -102,12 +107,6 @@ public:
 private:
   Node _head;  // 虚节点
 };
-
-#include <atomic>
-#include <chrono>
-#include <iostream>
-#include <thread>
-#include <vector>
 
 class ConcurrencyListTester
 {
