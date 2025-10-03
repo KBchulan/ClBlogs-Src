@@ -1,0 +1,5 @@
+Hello, this is a test file created by your lovely sister.
+This file is intended for testing purposes.
+You can use it to verify file reading and writing operations in your Go program.
+Feel free to modify or delete this content as you see fit.
+Have a great day coding!
