@@ -1,0 +1,79 @@
+GET  http://localhost:5000/get-ping HTTP/1.1
+
+###
+GET  http://localhost:5000/get-query?id=3 HTTP/1.1
+
+###
+GET  http://localhost:5000/get-dynamic-url/2 HTTP/1.1
+
+###
+GET  http://localhost:5000/return-basic HTTP/1.1
+
+###
+GET  http://localhost:5000/return-string?aid=10 HTTP/1.1
+
+###
+GET  http://localhost:5000/return-json-simple?name=chulan&age=15 HTTP/1.1
+
+###
+GET  http://localhost:5000/return-json-by-struct?name=chulan&age=15 HTTP/1.1
+
+###
+GET  http://localhost:5000/return-xml-simple HTTP/1.1
+
+###
+GET  http://localhost:5000/return-xml-by-struct HTTP/1.1
+
+###
+GET  http://localhost:5000/return-html1 HTTP/1.1
+
+###
+GET  http://localhost:5000/return-html2 HTTP/1.1
+
+###
+GET  http://localhost:5000/return-template-use HTTP/1.1
+
+###
+GET  http://localhost:5000/static/1.jpg HTTP/1.1
+
+###
+POST http://localhost:5000/post-form HTTP/1.1
+Content-Type: application/x-www-form-urlencoded
+
+username=chulan&password=123456&age=20
+
+###
+POST http://localhost:5000/post-should HTTP/1.1
+Content-Type: application/json
+
+{
+  "name": "chulan",
+  "age": 20,
+  "email": "test@example.com"
+}
+
+###
+POST http://localhost:5000/post-should HTTP/1.1
+Content-Type: application/xml
+
+<?xml version="1.0" encoding="UTF-8"?>
+<article>
+  <name >chulan</name>
+  <age>18</age>
+  <email>test@example.com</email>
+</article>
+
+###
+GET http://localhost:5000/v1/login HTTP/1.1
+
+###
+GET http://localhost:5000/admin/user HTTP/1.1
+
+###
+GET http://localhost:5000/user/get-user?name=chulan HTTP/1.1
+
+###
+GET http://localhost:5000/middleware_init HTTP/1.1
+
+###
+GET http://localhost:5000/next-use HTTP/1.1

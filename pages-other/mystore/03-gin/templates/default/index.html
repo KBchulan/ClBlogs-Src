@@ -1,0 +1,33 @@
+{{define "default/index.html"}}
+
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Document</title>
+</head>
+
+<body>
+  <h1>这是一个模板文件</h1>
+
+  <!-- 普通变量 -->
+  <h3>{{.title}}</h3>
+
+  <!-- 结构体 -->
+  <h3>{{.person.Name}}</h3>
+  <h3>{{.person.Age}}</h3>
+
+  <!-- 注释 -->
+  <h3>{{/* 这是第一行注释
+    这是第二行注释 */}}</h3>
+
+  <!-- 创建变量 -->
+  <h3>{{$gender := .gender}}</h3>
+  <h3>{{$gender}}</h3>
+</body>
+
+</html>
+
+{{end}}
