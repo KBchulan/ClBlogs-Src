@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"ginLearn/routes"
 	"net/http"
+	"path/filepath"
 	"strconv"
 
 	"github.com/gin-gonic/gin"
@@ -140,8 +141,71 @@ func NextUse(c *gin.Context) {
 }
 
 func UploadFile(c *gin.Context) {
-	file, _ := c.FormFile("file")
+	file, err := c.FormFile("file")
+	username := c.PostForm("username")
 
+	if err != nil {
+		c.String(http.StatusBadRequest, "upload file error: %s", err.Error())
+		return
+	}
+
+	uploadPath := "./upload"
+	dst := filepath.Join(uploadPath, file.Filename)
+
+	err2 := c.SaveUploadedFile(file, dst)
+	if err2 != nil {
+		c.String(http.StatusBadRequest, "save file error: %s", err2.Error())
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{
+		"message":  fmt.Sprintf("%s file upload success", file.Filename),
+		"username": username,
+	})
+}
+
+func UploadManyFile(c *gin.Context) {
+	form, err := c.MultipartForm()
+
+	if err != nil {
+		c.String(http.StatusBadRequest, "解析表单失败: %s", err.Error())
+		return
+	}
+
+	// 普通字段
+	userNames := form.Value["username"]
+
+	// 文件
+	files := form.File["files"]
+	for _, v := range files {
+		dst := filepath.Join("./upload", v.Filename)
+		if err := c.SaveUploadedFile(v, dst); err != nil {
+			c.String(http.StatusInternalServerError, "保存文件 '%s' 失败: %v", v.Filename, err)
+			return
+		}
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"username": userNames[0],
+		"message":  "file upload success",
+	})
+}
+
+func SetCookie(c *gin.Context) {
+	c.SetCookie("my-cookie", "hello cookie", 3600, "/", "localhost", false, true)
+	c.String(200, "Cookie set successful")
+}
+
+func GetCookie(c *gin.Context) {
+	cookie, err := c.Cookie("my-cookie")
+	if err != nil {
+		c.String(http.StatusBadRequest, "This cookie deleted")
+	}
+	c.String(http.StatusOK, cookie)
+}
+
+func DeleteCookie(c *gin.Context) {
+	c.SetCookie("my-cookie", "", -1, "/", "localhost", false, true)
+	c.String(200, "Cookie delete success")
 }
 
 func main() {
@@ -206,6 +270,15 @@ func main() {
 		ctx.Status(200)
 		ctx.Writer.WriteString("主要函数")
 	})
+
+	// 文件上传
+	r.POST("/upload", UploadFile)
+	r.POST("/upload-more", UploadManyFile)
+
+	// cookie操作
+	r.GET("/set-cookie", SetCookie)
+	r.GET("/get-cookie", GetCookie)
+	r.GET("/delete-cookie", DeleteCookie)
 
 	// 启动服务
 	fmt.Println("Server starting at http://localhost:5000")
